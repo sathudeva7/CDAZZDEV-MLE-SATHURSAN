@@ -1,0 +1,55 @@
+<!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Write the project CLAUDE.md with the hard rules', Date: 2026-10-06 -->
+# CDAZZDEV Senior MLE assessment
+
+This repo is a take-home assessment submission, published as the public GitHub
+repo `CDAZZDEV-MLE-<Name>`. Reviewers grade from the code, the **executed**
+Colab notebook outputs, `CITATIONS.md` and `REFLECTION.md`. Then the candidate
+has to defend every part in an interview. Write for that reader: readable,
+commented code where every choice can be explained.
+
+The brief is `tasks.md`. Before working on a task, read its section there,
+because the rubric tables list exactly what earns marks. Current focus: Task 1
+(Financial AI), then Task 3 (Agentic).
+
+## Layout
+
+- `task1_financial/`, `task3_agentic/`, and `task2_genai/` if attempted: each
+  holds one Colab notebook, the task's modules, and a README with a Colab badge.
+- Task 3's tools import Task 1's pipeline (prices, indicators, news, sentiment)
+  so the logic lives in one place.
+- `common/` holds code shared by every task: the structured LLM helper
+  (`llm.py`) and its provider profiles (`llm_config.py`).
+- `tests/` holds offline pytest tests, and `scripts/` holds the repo gates:
+  `check_secrets.sh` and `check_citations.sh`.
+
+## Hard rules
+
+Breaking a rule marked (DQ) disqualifies the whole submission.
+
+1. **Credentials live in the environment only (DQ).** Read keys from
+   `os.environ` locally, loaded from a gitignored `.env`, and from
+   `google.colab.userdata` in notebooks. `scripts/check_secrets.sh` must
+   print `clean` before every commit.
+2. **Notebooks ship executed (DQ).** Run each notebook top to bottom and commit
+   it with every cell output visible.
+3. **The brief stays private.** `tasks.md` and `tasks.pdf` are confidential, so
+   keep them out of every commit.
+4. **Cite in the same turn as the change.** Every file Claude writes or edits
+   gets its marker and its `CITATIONS.md` row, following the `cite-ai-usage`
+   skill, and `scripts/check_citations.sh` exits 0.
+5. **Submitted runs are free tier.** Notebooks are executed for submission on
+   the `free` LLM profile, with Groq, OpenRouter free models, yfinance,
+   duckduckgo-search and Colab's free GPU. The `paid_dev` profile is for local
+   testing only. Ask before adding anything else that needs a paid plan.
+6. **LLM calls go through `common/llm.py`.** Follow the `llm-structured-call`
+   skill: `Prompt` constants with separate system and user messages, a
+   Pydantic schema, and a fallback value, so the caller always gets a result.
+7. **Failures degrade gracefully.** Missing data, empty API results and tool
+   errors each produce a logged fallback, so the pipeline and the agents run to
+   completion.
+8. **Named constants and computed dates.** Windows, periods and thresholds are
+   named constants (`RSI_PERIOD = 14`). Date ranges are computed from today's
+   date, never written as literal date strings.
+9. **Indicators from first principles.** Write SMA, RSI, MACD and Bollinger
+   Bands with pandas and numpy only, following the `ta-indicators` skill.
+   TA-Lib and indicator libraries forfeit the indicator-accuracy criterion.

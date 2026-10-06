@@ -1,0 +1,8 @@
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build the llm-structured-call skill with its shared helper and tests', Date: 2026-10-06
+# Minimum versions only, so Colab's preinstalled packages are reused where they qualify.
+openai>=3.24
+pydantic>=2.7
+pandas>=2.2
+numpy>=1.26
+python-dotenv>=1.0
+pytest>=8.0
