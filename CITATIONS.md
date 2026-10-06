@@ -78,6 +78,12 @@ of the assessment brief. Every AI-assisted block also carries an inline
 | 2026-10-06 | Claude (claude-opus-5-5) | `requirements.txt` | 'Build Task 1B (Jev headline sentiment, LLM reasons and Recommendation) as designed in the grilling rounds' | Adds typesafe-sdk |
 | 2026-10-06 | Claude (claude-opus-5-5) | `.env.example` | 'Build Task 1B (Jev headline sentiment, LLM reasons and Recommendation) as designed in the grilling rounds' | JEV_API_KEY with a comment |
 | 2026-10-06 | Claude (claude-opus-5-5) | `CLAUDE.md` | 'Build Task 1B (Jev headline sentiment, LLM reasons and Recommendation) as designed in the grilling rounds' | Rule 5 records the approved Jev exception; rule 6 and the layout cover common/jev.py |
+| 2026-10-06 | Claude (claude-opus-5-5) | `task1_financial/report.py` | 'Build the Task 1 notebook and the bonus report as designed in the grilling rounds' | Bonus one-page brief: Markdown template, styled HTML with embedded chart, three-panel indicator chart, top headlines by strength |
+| 2026-10-06 | Claude (claude-opus-5-5) | `tests/test_report.py` | 'Build the Task 1 notebook and the bonus report as designed in the grilling rounds' | Offline tests for the brief's sections, top-headline order, placeholders, chart embedding and escaping |
+| 2026-10-06 | Claude (claude-opus-5-5) | `task1_financial/task1_equity_research.ipynb` | 'Build the Task 1 notebook and the bonus report as designed in the grilling rounds' | Task 1 Colab notebook: one section per rubric row, independent indicator check, validation demo with a stub client, call-log summary, report |
+| 2026-10-06 | Claude (claude-opus-5-5) | `common/jev.py` | 'Build the Task 1 notebook and the bonus report as designed in the grilling rounds' | A missing key is warned about once at start-up, not again for every headline |
+| 2026-10-06 | Claude (claude-opus-5-5) | `tests/test_jev.py` | 'Build the Task 1 notebook and the bonus report as designed in the grilling rounds' | Missing-key test checks the single warning |
+| 2026-10-06 | Claude (claude-opus-5-5) | `requirements.txt` | 'Build the Task 1 notebook and the bonus report as designed in the grilling rounds' | Adds markdown and matplotlib for the report |
 | 2026-10-06 | Claude (claude-opus-5-5) | `CITATIONS.md` | 'Create the cite-ai-usage skill' | This file's structure |
 
 ## Adapted open-source code

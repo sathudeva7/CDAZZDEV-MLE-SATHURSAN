@@ -17,6 +17,7 @@ Each request appends one JSON line to the same call log as StructuredLLM, so
 one file shows every model decision of a run.
 """
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 1B (Jev headline sentiment, LLM reasons and Recommendation) as designed in the grilling rounds', Date: 2026-10-06
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build the Task 1 notebook and the bonus report as designed in the grilling rounds', Date: 2026-10-06
 
 from __future__ import annotations
 
@@ -122,7 +123,8 @@ class JevClient:
                 result = JevResult(None, ok=False, error=f"{type(exc).__name__}: {exc}")
             except (_BadAnswer, ValidationError) as exc:
                 result = JevResult(None, ok=False, error=f"answer did not fit the question: {exc}")
-        if not result.ok:
+        # A missing key was already reported once by __init__, so only real failures warn here.
+        if not result.ok and self._client is not None:
             logger.warning("Jev %s failed: %s", question.name, result.error)
         self._log(question, result, usage, latency_s=time.perf_counter() - started)
         return result
