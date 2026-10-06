@@ -59,7 +59,7 @@ from common.llm import StructuredLLM
 from common.llm_config import Profile, Provider, active_profile, api_key
 from task3_agentic.prompts import RESEARCH_AGENT, RESEARCH_QUERY
 from task3_agentic.report import write_report
-from task3_agentic.schemas import ResearchReport
+from task3_agentic.schemas import ResearchReport, ToolResult
 from task3_agentic.tools import TOOL_NAMES, WHY_ARG, ToolSession, split_agent_args
 
 logger = logging.getLogger(__name__)
@@ -83,6 +83,7 @@ class AgentState(TypedDict):
     tool_calls_used: int  # reset by each new question
     turns: int  # reset by each new question
     result: dict | None  # what finish produced; None until it runs
+    context: dict  # JSON inputs for the finish step from the caller (3B: the request being answered)
 
 
 @dataclass
@@ -92,8 +93,9 @@ class AgentRun:
     thread_id: str
     answer: str  # the model's last text message
     observations: list[dict]  # this invocation's tool calls only
-    report: ResearchReport | None
+    report: ResearchReport | None  # 3A's report; None for the 3B agents, whose output is `result`
     warnings: list[str] = field(default_factory=list)
+    result: dict | None = None  # what the finish step produced, as JSON
 
     @property
     def tool_calls(self) -> int:
@@ -223,6 +225,12 @@ def build_agent_graph(
     return graph.compile(checkpointer=checkpointer)
 
 
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 3: the 3B two-agent pipeline with the critique loop and the persistent cache, as designed in the grilling rounds', Date: 2026-10-07
+def make_observation(tool: str, args: dict, why: str | None, result: ToolResult) -> dict:
+    """The JSON record of one tool call that ran: what the agent asked, why, and what came back."""
+    return {"tool": tool, "args": args, "why": why, "status": result.status, "digest": result.for_llm(), "result": result.model_dump(mode="json")}
+
+
 def _run_call(session: ToolSession, call: dict, tool_names: Sequence[str], agent: str, *, budget_left: bool) -> tuple[str, dict, bool]:
     """One requested tool call: (text for the model, observation, whether a tool actually ran)."""
     name, raw = call["name"], dict(call.get("args") or {})
@@ -238,9 +246,8 @@ def _run_call(session: ToolSession, call: dict, tool_names: Sequence[str], agent
             status, problem = "invalid_args", f"bad arguments: {_describe(exc)}"
         else:
             result = session.call(name, args, agent=agent, available=tool_names, why=why)
-            digest = result.for_llm()
-            observation = {"tool": name, "args": args, "why": why, "status": result.status, "digest": digest, "result": result.model_dump(mode="json")}
-            return digest, observation, True
+            observation = make_observation(name, args, why, result)
+            return observation["digest"], observation, True
 
     # The call never reached a tool: tell the model why, and trace it like any other call.
     digest = json.dumps({"tool": name, "status": "error", "error": problem})
@@ -297,24 +304,9 @@ class ResearchAgent:
         return self._run({"messages": [HumanMessage(question)]}, thread_id, on_update)
 
     def _run(self, update: dict, thread_id: str, on_update: Callable | None) -> AgentRun:
-        config = {"configurable": {"thread_id": thread_id}, "recursion_limit": RECURSION_LIMIT}
-        previous = self.graph.get_state(config).values
-        seen_obs, seen_warnings = len(previous.get("observations", [])), len(previous.get("warnings", []))
-        update = {**update, "tool_calls_used": 0, "turns": 0}  # a fresh budget for every question
-
-        for step in self.graph.stream(update, config, stream_mode="updates"):
-            if on_update:
-                on_update(self.name, step)
-
-        state = self.graph.get_state(config).values
-        result = state.get("result")
-        return AgentRun(
-            thread_id=thread_id,
-            answer=_text(next((m for m in reversed(state["messages"]) if isinstance(m, AIMessage)), AIMessage(""))),
-            observations=state["observations"][seen_obs:],
-            report=ResearchReport.model_validate(result) if result else None,
-            warnings=state["warnings"][seen_warnings:],
-        )
+        run = invoke_agent(self.graph, self.name, update, thread_id, on_update)
+        run.report = ResearchReport.model_validate(run.result) if run.result else None
+        return run
 
     def _finish(self, state: AgentState) -> dict:
         report = write_report(state["ticker"], self.session.today, state["observations"], self._get_llm(), self.tool_names)
@@ -336,6 +328,33 @@ class ResearchAgent:
                 logger.warning("no LLM for the report: %s", exc)
                 return None
         return self._llm
+
+
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 3: the 3B two-agent pipeline with the critique loop and the persistent cache, as designed in the grilling rounds', Date: 2026-10-07
+def invoke_agent(graph, name: str, update: dict, thread_id: str, on_update: Callable | None = None) -> AgentRun:
+    """Run one question through a compiled agent graph, streaming each step to `on_update(name, step)`.
+
+    Shared by the 3A ResearchAgent and the 3B pipeline's agents. Each call gets
+    a fresh tool and turn budget; observations and warnings are this call's only.
+    """
+    config = {"configurable": {"thread_id": thread_id}, "recursion_limit": RECURSION_LIMIT}
+    previous = graph.get_state(config).values
+    seen_obs, seen_warnings = len(previous.get("observations", [])), len(previous.get("warnings", []))
+    update = {**update, "tool_calls_used": 0, "turns": 0}
+
+    for step in graph.stream(update, config, stream_mode="updates"):
+        if on_update:
+            on_update(name, step)
+
+    state = graph.get_state(config).values
+    return AgentRun(
+        thread_id=thread_id,
+        answer=_text(next((m for m in reversed(state["messages"]) if isinstance(m, AIMessage)), AIMessage(""))),
+        observations=state["observations"][seen_obs:],
+        report=None,
+        warnings=state["warnings"][seen_warnings:],
+        result=state.get("result"),
+    )
 
 
 def _text(message: AIMessage) -> str:

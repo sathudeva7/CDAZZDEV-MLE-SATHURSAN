@@ -37,6 +37,24 @@ the same change.
      tool, and every model failing.
    - Mutation-check each routing rule you add: break it, see red, restore.
 
+## The 3B pipeline
+
+`task3_agentic/pipeline.py` runs the agents above from a fixed outer graph,
+and `handoff.py` builds what passes between them. The rubric rows are
+distinct roles with enforced tools, a typed handoff, a visible trace, and a
+critique loop that runs once. So:
+
+- Every handoff is a model in `schemas.py` (DataBrief, ClarificationRequest,
+  ClarificationResponse), validated on receipt and passed as JSON. Numbers
+  in a handoff are copied by code from tool results; an LLM writes only the
+  interpretation fields.
+- A new pipeline step emits `on_update(agent, {"<step>": payload})` with a
+  printer in `PIPELINE_PRINTERS`, and writes a trace event.
+- Each agent run gets its own thread (`_invoke(..., thread=...)`), so a
+  finish step runs once per thread.
+- The cache key or a cached schema's shape changing means bumping
+  `cache.SCHEMA_VERSION`.
+
 ## Checking a live run
 
 Run it with `on_update=print_update`, then read in this order:

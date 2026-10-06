@@ -357,6 +357,7 @@ class ResearchReport(BaseModel):
     tools_called: list[str] = Field(description="Every tool that returned a usable result, in call order")
     generated_by: ReportSource
     warnings: list[str] = Field(default_factory=list)
+    clarification_used: str | None = Field(default=None, description="3B only: what Agent A's clarification changed")
 
     def to_markdown(self) -> str:
         """The report as Markdown, for display in the notebook."""
@@ -380,6 +381,152 @@ class ResearchReport(BaseModel):
                 f"({lv.expected_move_pct:.1f}%) from {lv.price:.2f}, using {lv.volatility_pct:.1f}% volatility ({lv.volatility_source})."
             )
         lines += ["", f"_{hedge.note}_"]
+        if self.clarification_used:
+            lines += ["", "## What the clarification changed", "", self.clarification_used]
         if self.data_gaps:
             lines += ["", "## Data gaps", ""] + [f"- {gap}" for gap in self.data_gaps]
         return "\n".join(lines)
+
+
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 3: the 3B two-agent pipeline with the critique loop and the persistent cache, as designed in the grilling rounds', Date: 2026-10-07
+# --- Task 3B: the handoff from Agent A to Agent B, and the critique loop -------------------
+# Snapshots are the few numbers from each tool result that a reader needs. The DataBrief
+# and the clarification answer carry these, never raw text, so the handoff is typed.
+
+ClarificationNeed = Literal["price_data", "volatility", "sentiment"]
+BriefSource = Literal["llm", "template"]
+Fulfiller = Literal["agent", "pipeline"]
+
+MIN_KEY_OBSERVATIONS = 3
+MAX_KEY_OBSERVATIONS = 5
+
+
+class PriceSnapshot(BaseModel):
+    """The latest price figures from one get_price_data result."""
+
+    ticker: str
+    period: Period
+    as_of: date
+    close: float
+    period_return_pct: float | None
+    close_vs_sma_50_pct: float | None
+    close_vs_sma_200_pct: float | None
+    high_52w: float
+    low_52w: float
+    sma_200: float | None
+    rsi_14: float | None
+    macd: float | None
+    macd_signal: float | None
+    macd_hist: float | None
+    bb_lower: float | None
+    bb_pct_b: float | None
+    hv_30_pct: float | None = Field(description="30-day annualised volatility from the price data, in percent")
+
+    @classmethod
+    def from_price_data(cls, price: PriceData) -> PriceSnapshot:
+        latest = price.latest.indicators
+        hv_30 = latest.get("hv_30")
+        return cls(
+            ticker=price.ticker,
+            period=price.period,
+            as_of=price.as_of,
+            close=_round(price.latest.close),
+            period_return_pct=_round(price.period_return_pct),
+            close_vs_sma_50_pct=_round(price.close_vs_sma_50_pct),
+            close_vs_sma_200_pct=_round(price.close_vs_sma_200_pct),
+            high_52w=_round(price.high_52w),
+            low_52w=_round(price.low_52w),
+            sma_200=_round(latest.get("sma_200")),
+            rsi_14=_round(latest.get("rsi_14")),
+            macd=_round(latest.get("macd")),
+            macd_signal=_round(latest.get("macd_signal")),
+            macd_hist=_round(latest.get("macd_hist")),
+            bb_lower=_round(latest.get("bb_lower")),
+            bb_pct_b=_round(latest.get("bb_pct_b")),
+            hv_30_pct=_round(hv_30 * 100) if hv_30 is not None else None,
+        )
+
+
+class StrongHeadline(BaseModel):
+    headline: str
+    sentiment: Sentiment
+    score: float
+    reason: str
+
+
+class SentimentSnapshot(BaseModel):
+    """The Sentiment score from one llm_sentiment result, with its strongest headlines."""
+
+    score: float | None
+    label: Sentiment | None
+    scored: int
+    counts: dict[str, int]
+    strongest: list[StrongHeadline]
+
+    @classmethod
+    def from_stats(cls, stats: SentimentStats) -> SentimentSnapshot:
+        digest = stats.digest()
+        return cls(
+            score=digest["score"], label=digest["label"], scored=digest["scored"], counts=digest["counts"],
+            strongest=[StrongHeadline(**item) for item in digest["strongest"]],
+        )
+
+
+class KeyObservationsAnswer(BaseModel):
+    """Agent A's interpretation of its own numbers, for the data brief."""
+
+    key_observations: list[str] = Field(
+        min_length=MIN_KEY_OBSERVATIONS,
+        max_length=MAX_KEY_OBSERVATIONS,
+        description="Three to five findings, each one sentence of at most 30 words quoting the numbers behind it",
+    )
+
+
+class DataBrief(BaseModel):
+    """Agent A's handoff to Agent B. Code copies every number from A's tool results; A's LLM writes key_observations.
+
+    A section is None when A never got a usable result for it; data_gaps says why.
+    Sources: price from get_price_data, volatility from calculate_volatility,
+    sentiment from llm_sentiment.
+    """
+
+    ticker: str
+    as_of: date
+    headlines_given: int = Field(description="Headlines the pipeline fetched for A before it started")
+    price: PriceSnapshot | None
+    volatility: VolatilityStats | None
+    sentiment: SentimentSnapshot | None
+    hedge_levels: HedgeLevels | None
+    key_observations: list[str]
+    data_gaps: list[str]
+    tools_called: list[str] = Field(description="A's tools that returned a usable result")
+    generated_by: BriefSource = Field(description="Who wrote key_observations: A's LLM, or a template when it failed")
+
+
+class ClarificationRequest(BaseModel):
+    """Agent B's one question back to Agent A. `needs` is limited to what A's tools can supply."""
+
+    question: str = Field(description="One specific question for the quantitative analyst")
+    needs: ClarificationNeed = Field(description="Which kind of data answers it: price_data, volatility or sentiment")
+    period: str | None = Field(description="For price_data: 1mo, 3mo, 6mo, 1y or 2y; otherwise null")
+    window: int | None = Field(description="For volatility: trading days per estimate, 5 to 252; otherwise null")
+    headlines: list[str] | None = Field(description="For sentiment: headline titles you found that the brief did not score; otherwise null")
+    why: str = Field(description="Which gap in the brief this fills, and how the answer will change the report")
+
+
+class ClarificationResponse(BaseModel):
+    """Agent A's answer to the request, with the requested data as a typed snapshot."""
+
+    request: ClarificationRequest
+    answer: str = Field(description="A's reply in its own words")
+    price: PriceSnapshot | None = None
+    volatility: VolatilityStats | None = None
+    sentiment: SentimentSnapshot | None = None
+    tools_called: list[str] = Field(description="Tools that returned a usable result while answering")
+    fulfilled_by: Fulfiller = Field(description="'pipeline' when A did not fetch the data and the pipeline called the tool for it")
+
+
+class FinalReportAnswer(ReportAnswer):
+    """Agent B's final report: the 3A report sections plus how the clarification was used."""
+
+    clarification_used: str = Field(description="One or two sentences on what the analyst's clarification answer changed in this report")

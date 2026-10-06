@@ -2,6 +2,7 @@
 <!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Grill Task 1B (Jev sentiment decisions, LLM text) and record the resolved terms', Date: 2026-10-06 -->
 <!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 1: the five agent tools, their tests and the new-tool skill, as designed in the grilling rounds', Date: 2026-10-07 -->
 <!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 2: the 3A agent loop, report, hedge levels, printer and short-term memory, as designed in the grilling rounds', Date: 2026-10-07 -->
+<!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 3: the 3B two-agent pipeline with the critique loop and the persistent cache, as designed in the grilling rounds', Date: 2026-10-07 -->
 # Equity research
 
 The words this repo uses for the market data, news and analysis behind a
@@ -76,3 +77,18 @@ The `agent_trace.jsonl` log: one line per tool call (and per handoff,
 critique and cache lookup) with its inputs, digest cut to 200 characters,
 status and duration.
 _Avoid_: Log, call log (that is the LLM's `llm_calls.jsonl`)
+
+**Data brief**:
+Agent A's typed handoff to Agent B: price, volatility and sentiment figures
+copied from A's tool results, the hedge levels, and A's key observations.
+_Avoid_: Summary, A's output, report
+
+**Clarification request**:
+Agent B's one question back to Agent A, limited to data A's tools can
+supply (price data, volatility or sentiment), with the reason it matters.
+_Avoid_: Critique, follow-up, feedback
+
+**Cached run**:
+A finished 3B result saved as JSON under the ticker and the New York market
+date; a later run that day loads it instead of calling any tool.
+_Avoid_: Memory, snapshot, saved state
