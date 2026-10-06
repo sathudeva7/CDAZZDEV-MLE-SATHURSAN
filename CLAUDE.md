@@ -1,4 +1,5 @@
 <!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Write the project CLAUDE.md with the hard rules', Date: 2026-10-06 -->
+<!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 1B (Jev headline sentiment, LLM reasons and Recommendation) as designed in the grilling rounds', Date: 2026-10-06 -->
 # CDAZZDEV Senior MLE assessment
 
 This repo is a take-home assessment submission, published as the public GitHub
@@ -18,7 +19,8 @@ because the rubric tables list exactly what earns marks. Current focus: Task 1
 - Task 3's tools import Task 1's pipeline (prices, indicators, news, sentiment)
   so the logic lives in one place.
 - `common/` holds code shared by every task: the structured LLM helper
-  (`llm.py`) and its provider profiles (`llm_config.py`).
+  (`llm.py`), its provider profiles (`llm_config.py`), and the Jev client
+  (`jev.py`).
 - `tests/` holds offline pytest tests, and `scripts/` holds the repo gates:
   `check_secrets.sh` and `check_citations.sh`.
 
@@ -41,9 +43,13 @@ Breaking a rule marked (DQ) disqualifies the whole submission.
    the `free` LLM profile, with Groq, OpenRouter free models, yfinance,
    duckduckgo-search and Colab's free GPU. The `paid_dev` profile is for local
    testing only. Ask before adding anything else that needs a paid plan.
+   One approved exception (2026-10-06): Jev, TypeSafe's paid decision model,
+   labels headline sentiment in every profile (`docs/adr/0001`).
 6. **LLM calls go through `common/llm.py`.** Follow the `llm-structured-call`
    skill: `Prompt` constants with separate system and user messages, a
    Pydantic schema, and a fallback value, so the caller always gets a result.
+   Jev requests go through `common/jev.py` the same way, with `JevQuestion`
+   constants, and the LLM writes every piece of text Jev cannot.
 7. **Failures degrade gracefully.** Missing data, empty API results and tool
    errors each produce a logged fallback, so the pipeline and the agents run to
    completion.
