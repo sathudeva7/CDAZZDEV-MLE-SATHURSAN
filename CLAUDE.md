@@ -1,5 +1,6 @@
 <!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Write the project CLAUDE.md with the hard rules', Date: 2026-10-06 -->
 <!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 1B (Jev headline sentiment, LLM reasons and Recommendation) as designed in the grilling rounds', Date: 2026-10-06 -->
+<!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Write the root README and a Task 1 REFLECTION as decided in the grilling round', Date: 2026-10-07 -->
 # CDAZZDEV Senior MLE assessment
 
 This repo is a take-home assessment submission, published as the public GitHub
@@ -43,8 +44,10 @@ Breaking a rule marked (DQ) disqualifies the whole submission.
    the `free` LLM profile, with Groq, OpenRouter free models, yfinance,
    duckduckgo-search and Colab's free GPU. The `paid_dev` profile is for local
    testing only. Ask before adding anything else that needs a paid plan.
-   One approved exception (2026-10-06): Jev, TypeSafe's paid decision model,
-   labels headline sentiment in every profile (`docs/adr/0001`).
+   One deliberate exception (2026-10-06), the candidate's own choice: Jev,
+   TypeSafe's paid decision model, labels headline sentiment in every profile
+   when its key is set (`docs/adr/0001`). Public docs call it "a deliberate
+   exception to the free-tier setup", never "approved".
 6. **LLM calls go through `common/llm.py`.** Follow the `llm-structured-call`
    skill: `Prompt` constants with separate system and user messages, a
    Pydantic schema, and a fallback value, so the caller always gets a result.
