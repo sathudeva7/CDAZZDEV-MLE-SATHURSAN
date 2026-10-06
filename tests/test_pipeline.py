@@ -1,5 +1,6 @@
-"""Offline end-to-end tests for task1_financial/pipeline.py, with yfinance replaced by fakes."""
+"""Offline end-to-end tests for task1_financial/pipeline.py, with yfinance and the news feeds replaced by fakes."""
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build the Task 1A yfinance data pipeline and summary dictionary', Date: 2026-10-06
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 1A step 2, news headlines, as designed in the grilling rounds', Date: 2026-10-06
 
 from __future__ import annotations
 
@@ -9,8 +10,9 @@ from datetime import date
 import numpy as np
 import pandas as pd
 
-from task1_financial import data
+from task1_financial import data, news
 from task1_financial.indicators import COL_SMA_LONG
+from task1_financial.news import NEWS_TARGET
 from task1_financial.pipeline import run_market_data
 
 TODAY = date(2026, 10, 6)
@@ -27,9 +29,16 @@ def two_years_of_bars(**_) -> pd.DataFrame:
     return pd.DataFrame({"Close": close, "High": close + 1, "Low": close - 1, "Open": close, "Volume": 1_000}, index=days)
 
 
+def twenty_headlines_rss(url: str) -> bytes:
+    """Stands in for news._download: the same 20 recent items whichever feed is asked."""
+    items = "".join(f"<item><title>Story {i}</title><pubDate>Mon, 05 Oct 2026 {i:02d}:00:00 GMT</pubDate></item>" for i in range(20))
+    return f"<rss><channel>{items}</channel></rss>".encode()
+
+
 def test_full_run_fills_every_field(monkeypatch):
     monkeypatch.setattr(data.yf, "download", lambda ticker, **kwargs: two_years_of_bars())
     monkeypatch.setattr(data.yf, "Ticker", FakeTicker)
+    monkeypatch.setattr(news, "_download", twenty_headlines_rss)
 
     result = run_market_data(" aapl ", today=TODAY)
 
@@ -44,6 +53,8 @@ def test_full_run_fills_every_field(monkeypatch):
     assert summary["momentum"]["score"] >= 3
     assert summary["warnings"] == []
     assert COL_SMA_LONG in result.prices.columns
+    assert len(result.headlines) == NEWS_TARGET
+    assert result.headlines[0].title == "Story 19"  # newest first
     json.dumps(summary)
 
 
@@ -55,6 +66,7 @@ def test_yahoo_down_still_returns_a_summary(monkeypatch):
         raise ConnectionError("no network")
 
     monkeypatch.setattr(data.yf, "Ticker", broken_ticker)
+    monkeypatch.setattr(news, "_download", broken_ticker)
 
     result = run_market_data("AAPL", today=TODAY)
 
@@ -63,4 +75,5 @@ def test_yahoo_down_still_returns_a_summary(monkeypatch):
     assert summary["momentum"]["label"] == "Neutral"
     assert any("price history" in w for w in summary["warnings"])
     assert any("fundamentals" in w for w in summary["warnings"])
-    assert result.prices.empty
+    assert any("only 0 headlines" in w for w in summary["warnings"])
+    assert result.prices.empty and result.headlines == []

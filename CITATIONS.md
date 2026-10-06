@@ -50,6 +50,16 @@ of the assessment brief. Every AI-assisted block also carries an inline
 | 2026-10-06 | Claude (claude-opus-5-5) | `requirements.txt` | 'Build the Task 1A yfinance data pipeline and summary dictionary' | Adds yfinance |
 | 2026-10-06 | Claude (claude-opus-5-5) | `common/llm.py` | 'Build the Task 1A yfinance data pipeline and summary dictionary' | `enable_console_logging` also covers task1_financial |
 | 2026-10-06 | Claude (claude-opus-5-5) | `.claude/skills/llm-structured-call/SKILL.md`, `.claude/skills/ta-indicators/SKILL.md` | 'Build the Task 1A yfinance data pipeline and summary dictionary' | Point to the shared logging call and to fetch_ohlcv |
+| 2026-10-06 | Claude (claude-opus-5-5) | `GLOSSARY.md` | 'Grill the Task 1A news headlines design and record the resolved terms' | Domain glossary: Headline, Publisher, Feed |
+| 2026-10-06 | Claude (claude-opus-5-5) | `task1_financial/news.py` | 'Build Task 1A step 2, news headlines, as designed in the grilling rounds' | Recent headlines from Yahoo and Google News RSS: recency cutoff, publisher split, de-duplication, retries, clamped count |
+| 2026-10-06 | Claude (claude-opus-5-5) | `task1_financial/data.py` | 'Build Task 1A step 2, news headlines, as designed in the grilling rounds' | Retry helper made public (`with_retries`) so news.py shares it |
+| 2026-10-06 | Claude (claude-opus-5-5) | `task1_financial/pipeline.py` | 'Build Task 1A step 2, news headlines, as designed in the grilling rounds' | `run_market_data` returns headlines beside the summary; news warnings join summary['warnings'] |
+| 2026-10-06 | Claude (claude-opus-5-5) | `tests/test_news.py` | 'Build Task 1A step 2, news headlines, as designed in the grilling rounds' | Offline tests for parsing, feed order, duplicates, recency, failures and the count limits |
+| 2026-10-06 | Claude (claude-opus-5-5) | `tests/fixtures/yahoo_rss_sample.xml` | 'Build Task 1A step 2, news headlines, as designed in the grilling rounds' | Hand-written Yahoo-style RSS sample with old, undated and malformed items |
+| 2026-10-06 | Claude (claude-opus-5-5) | `tests/fixtures/google_news_rss_sample.xml` | 'Build Task 1A step 2, news headlines, as designed in the grilling rounds' | Hand-written Google News-style RSS sample with publisher suffixes and <source> tags |
+| 2026-10-06 | Claude (claude-opus-5-5) | `tests/test_pipeline.py` | 'Build Task 1A step 2, news headlines, as designed in the grilling rounds' | News feeds faked in the end-to-end tests; headline assertions |
+| 2026-10-06 | Claude (claude-opus-5-5) | `tests/test_live_news.py` | 'Build Task 1A step 2, news headlines, as designed in the grilling rounds' | Opt-in live check: at least 10 recent, unique AAPL headlines |
+| 2026-10-06 | Claude (claude-opus-5-5) | `pytest.ini` | 'Build Task 1A step 2, news headlines, as designed in the grilling rounds' | `live` marker description covers the news feeds |
 | 2026-10-06 | Claude (claude-opus-5-5) | `CITATIONS.md` | 'Create the cite-ai-usage skill' | This file's structure |
 
 ## Adapted open-source code
