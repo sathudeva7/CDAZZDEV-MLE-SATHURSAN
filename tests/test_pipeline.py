@@ -1,6 +1,7 @@
 """Offline end-to-end tests for task1_financial/pipeline.py, with yfinance and the news feeds replaced by fakes."""
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build the Task 1A yfinance data pipeline and summary dictionary', Date: 2026-10-06
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 1A step 2, news headlines, as designed in the grilling rounds', Date: 2026-10-06
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 1B (Jev headline sentiment, LLM reasons and Recommendation) as designed in the grilling rounds', Date: 2026-10-06
 
 from __future__ import annotations
 
@@ -13,7 +14,10 @@ import pandas as pd
 from task1_financial import data, news
 from task1_financial.indicators import COL_SMA_LONG
 from task1_financial.news import NEWS_TARGET
-from task1_financial.pipeline import run_market_data
+from task1_financial.pipeline import run_analysis, run_market_data
+from task1_financial.recommendation import FALLBACK_RECOMMENDATION
+from task1_financial.schemas import HeadlineReason, Recommendation
+from tests.fakes import ScriptedJev, ScriptedLLM
 
 TODAY = date(2026, 10, 6)
 
@@ -77,3 +81,44 @@ def test_yahoo_down_still_returns_a_summary(monkeypatch):
     assert any("fundamentals" in w for w in summary["warnings"])
     assert any("only 0 headlines" in w for w in summary["warnings"])
     assert result.prices.empty and result.headlines == []
+
+
+def market_data(monkeypatch):
+    monkeypatch.setattr(data.yf, "download", lambda ticker, **kwargs: two_years_of_bars())
+    monkeypatch.setattr(data.yf, "Ticker", FakeTicker)
+    monkeypatch.setattr(news, "_download", twenty_headlines_rss)
+    return run_market_data("AAPL", today=TODAY)
+
+
+def test_analysis_scores_every_headline_then_recommends(monkeypatch):
+    market = market_data(monkeypatch)
+    positive = ("positive", {"positive": 0.7, "neutral": 0.3, "negative": 0.0})
+    reason = HeadlineReason(brief_reason="Growth news supports the share price.")
+    call = Recommendation(
+        recommendation="Buy",
+        justification="The trend is up on both averages. Momentum confirms it. News adds mild support.",
+        key_factors=["Close above both averages", "Positive news with rising momentum"],
+    )
+    jev = ScriptedJev([positive] * NEWS_TARGET)
+    llm = ScriptedLLM([reason] * NEWS_TARGET + [call])
+
+    analysis = run_analysis(market, llm=llm, jev=jev)
+
+    assert len(analysis.headline_sentiments) == NEWS_TARGET
+    assert analysis.sentiment.score == 0.7 and analysis.sentiment.label == "positive"
+    assert analysis.recommendation.ok and analysis.recommendation.value.recommendation == "Buy"
+    assert analysis.warnings == []
+    # One Jev request and one reason per headline, then one Recommendation.
+    assert len(jev.requests) == NEWS_TARGET
+    assert [r["prompt"] for r in llm.requests] == ["headline_reason"] * NEWS_TARGET + ["recommendation"]
+
+
+def test_analysis_finishes_when_every_model_fails(monkeypatch):
+    market = market_data(monkeypatch)
+
+    analysis = run_analysis(market, llm=ScriptedLLM([None] * (NEWS_TARGET + 1)), jev=ScriptedJev([None] * NEWS_TARGET))
+
+    assert analysis.sentiment.score is None and analysis.sentiment.failed == NEWS_TARGET
+    assert analysis.recommendation.value == FALLBACK_RECOMMENDATION and not analysis.recommendation.ok
+    assert any("no headline could be scored" in w for w in analysis.warnings)
+    assert any("placeholder Hold" in w for w in analysis.warnings)

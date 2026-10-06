@@ -112,7 +112,16 @@ def active_profile() -> Profile:
 
 def api_key(provider: Provider) -> str | None:
     """The provider's key from the environment, then from Colab Secrets; None if unset."""
-    value = os.environ.get(provider.api_key_env)
+    return secret(provider.api_key_env)
+
+
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 1B (Jev headline sentiment, LLM reasons and Recommendation) as designed in the grilling rounds', Date: 2026-10-06
+def secret(name: str) -> str | None:
+    """The secret `name` from the environment, then from Colab Secrets; None if unset.
+
+    Shared by the LLM providers and the Jev client (common/jev.py).
+    """
+    value = os.environ.get(name)
     if value:
         return value
     try:
@@ -120,6 +129,6 @@ def api_key(provider: Provider) -> str | None:
     except ImportError:
         return None
     try:
-        return userdata.get(provider.api_key_env)
+        return userdata.get(name)
     except (userdata.SecretNotFoundError, userdata.NotebookAccessError):
         return None
