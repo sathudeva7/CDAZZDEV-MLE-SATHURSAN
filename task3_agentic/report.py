@@ -7,21 +7,27 @@
    times in three the price ends between 170 and 230. The candidate levels
    are those two bounds plus the SMA-200, the lower Bollinger Band and the
    52-week low, each with its distance from the price.
-2. Sections. One StructuredLLM call (RESEARCH_REPORT) writes the summary,
-   three risks and the hedge choice from the agent's observations: the same
-   digests the agent read. Hedge legs name a candidate level; code fills in
-   the number, so the LLM never supplies a price.
+2. Sections. One StructuredLLM call writes the summary, three risks and the
+   hedge choice: RESEARCH_REPORT from the 3A agent's observations, or
+   FINAL_REPORT from the 3B data brief, Agent B's own observations and the
+   clarification. Hedge legs name a candidate level; code fills in the
+   number, so the LLM never supplies a price.
 3. Checks. Evidence must cite a tool that returned status ok in this run;
    anything else is dropped with a warning. An unknown level name leaves the
    leg without a level, with a warning.
 4. Fallback. When no LLM answers, a template report built from the same
-   observations takes its place, labelled generated_by="template".
+   numbers takes its place, labelled generated_by="template".
+
+Both reports work from snapshots (PriceSnapshot, VolatilityStats,
+SentimentSnapshot): 3A takes them from its observations, 3B from the data
+brief, so the hedge maths and the template have one source.
 
 An observation is the dict the agent loop stores for each tool call (see
 agent.py): tool, args, why, status, digest (the text the agent read) and
 result (the ToolResult as JSON, or None when the call never ran).
 """
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 2: the 3A agent loop, report, hedge levels, printer and short-term memory, as designed in the grilling rounds', Date: 2026-10-07
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 3: the 3B two-agent pipeline with the critique loop and the persistent cache, as designed in the grilling rounds', Date: 2026-10-07
 
 from __future__ import annotations
 
@@ -29,18 +35,17 @@ import json
 import logging
 import math
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import date
 
 from common.llm import StructuredLLM
-from task1_financial.indicators import (
-    COL_BB_LOWER,
-    COL_SMA_LONG,
-    COL_VOLATILITY,
-    TRADING_DAYS_PER_YEAR,
-)
-from task3_agentic.prompts import RESEARCH_REPORT
+from task1_financial.indicators import TRADING_DAYS_PER_YEAR
+from task3_agentic.prompts import FINAL_REPORT, RESEARCH_REPORT
 from task3_agentic.schemas import (
+    ClarificationResponse,
+    DataBrief,
     EvidenceAnswer,
+    FinalReportAnswer,
     HedgeAnswer,
     HedgeLeg,
     HedgeLegAnswer,
@@ -48,10 +53,12 @@ from task3_agentic.schemas import (
     HedgeLevels,
     HedgeStrategy,
     PriceData,
+    PriceSnapshot,
     ReportAnswer,
     ResearchReport,
     Risk,
     RiskAnswer,
+    SentimentSnapshot,
     SentimentStats,
     VolatilityStats,
 )
@@ -69,6 +76,7 @@ PERCENT = 100.0
 LEVEL_DECIMALS = 2
 REPORT_EFFORT = "medium"  # reasons across price, volatility, sentiment and commentary at once
 NO_HEDGE_LEVELS = "unavailable: no usable price data, so no levels could be computed"
+CLARIFICATION_NOT_USED = "The clarification could not be weighed: the report model was unavailable, so this report was written from a template."
 
 # Candidate level names and what each one means, in the order the prompt lists them.
 ONE_SD_LOW = "one_sd_low"
@@ -85,26 +93,48 @@ LEVEL_MEANINGS = {
 }
 
 
+@dataclass(frozen=True)
+class Snapshots:
+    """The latest usable price, volatility and sentiment figures; None where there was none."""
+
+    price: PriceSnapshot | None
+    volatility: VolatilityStats | None
+    sentiment: SentimentSnapshot | None
+
+
+def snapshots(observations: Sequence[dict]) -> Snapshots:
+    """The figures from the latest ok result of each data tool in `observations`."""
+    price_obs = latest_ok(observations, GET_PRICE_DATA)
+    vol_obs = latest_ok(observations, CALCULATE_VOLATILITY)
+    sent_obs = latest_ok(observations, LLM_SENTIMENT)
+    return Snapshots(
+        price=PriceSnapshot.from_price_data(PriceData.model_validate(price_obs["result"]["data"])) if price_obs else None,
+        volatility=VolatilityStats.model_validate(vol_obs["result"]["data"]) if vol_obs else None,
+        sentiment=SentimentSnapshot.from_stats(SentimentStats.model_validate(sent_obs["result"]["data"])) if sent_obs else None,
+    )
+
+
 def compute_hedge_levels(observations: Sequence[dict]) -> HedgeLevels | None:
     """The expected move and candidate levels from the latest usable price and volatility results."""
-    price_obs = latest_ok(observations, GET_PRICE_DATA)
-    if price_obs is None:
-        return None
-    price = PriceData.model_validate(price_obs["result"]["data"])
-    close = price.latest.close
+    found = snapshots(observations)
+    return hedge_levels(found.price, found.volatility)
 
-    vol_obs = latest_ok(observations, CALCULATE_VOLATILITY)
-    if vol_obs is not None:
-        stats = VolatilityStats.model_validate(vol_obs["result"]["data"])
-        volatility_pct, source = stats.current_pct, f"calculate_volatility, {stats.window}-day"
-    elif price.latest.indicators.get(COL_VOLATILITY) is not None:
-        volatility_pct, source = price.latest.indicators[COL_VOLATILITY] * PERCENT, f"get_price_data {COL_VOLATILITY}"
+
+def hedge_levels(price: PriceSnapshot | None, volatility: VolatilityStats | None) -> HedgeLevels | None:
+    """The expected move and candidate levels; None without a price or any volatility figure."""
+    if price is None:
+        return None
+    if volatility is not None:
+        volatility_pct, source = volatility.current_pct, f"calculate_volatility, {volatility.window}-day"
+    elif price.hv_30_pct is not None:
+        volatility_pct, source = price.hv_30_pct, "get_price_data hv_30"
     else:
         return None
 
+    close = price.close
     move = expected_move(close, volatility_pct)
     levels = {ONE_SD_LOW: close - move, ONE_SD_HIGH: close + move}
-    for name, value in ((SMA_200, price.latest.indicators.get(COL_SMA_LONG)), (BB_LOWER, price.latest.indicators.get(COL_BB_LOWER)), (LOW_52W, price.low_52w)):
+    for name, value in ((SMA_200, price.sma_200), (BB_LOWER, price.bb_lower), (LOW_52W, price.low_52w)):
         if value is not None:
             levels[name] = value
     candidates = [
@@ -127,6 +157,9 @@ def expected_move(price: float, volatility_pct: float, trading_days: int = HEDGE
     return price * volatility_pct / PERCENT * math.sqrt(trading_days / TRADING_DAYS_PER_YEAR)
 
 
+# --- Task 3A: the single agent's report -------------------------------------------------------
+
+
 def write_report(
     ticker: str,
     today: date,
@@ -134,46 +167,63 @@ def write_report(
     llm: StructuredLLM | None,
     tools_available: Sequence[str] = TOOL_NAMES,
 ) -> ResearchReport:
-    """The checked research report. Never raises for a model failure: the template takes over."""
+    """The checked 3A research report. Never raises for a model failure: the template takes over."""
     warnings: list[str] = []
-    levels = compute_hedge_levels(observations)
-    fallback = template_answer(observations, levels)
-    if llm is None:
-        _warn(warnings, "no LLM is available for the report, so it was written from a template")
-        answer, generated_by = fallback, "template"
-    else:
-        result = llm.call(
-            RESEARCH_REPORT,
-            {
-                "ticker": ticker,
-                "today": today.isoformat(),
-                "observations": format_observations(observations),
-                "hedge_levels": levels.model_dump_json() if levels else NO_HEDGE_LEVELS,
-            },
-            ReportAnswer,
-            fallback=fallback,
-            reasoning_effort=REPORT_EFFORT,
-        )
-        if not result.ok:
-            _warn(warnings, f"the report model failed ({result.error}), so the report was written from a template")
-        answer, generated_by = result.value, "llm" if result.ok else "template"
-
-    ok_tools = tools_with_status_ok(observations)
-    return ResearchReport(
-        ticker=ticker,
-        as_of=today,
-        financial_health_summary=answer.financial_health_summary,
-        top_risks=[_checked_risk(risk, ok_tools, warnings) for risk in answer.top_risks],
-        hedge=_hedge_strategy(answer.hedge, levels, warnings),
-        data_gaps=data_gaps(observations, tools_available),
-        tools_called=ok_tools,
-        generated_by=generated_by,
-        warnings=warnings,
+    found = snapshots(observations)
+    levels = hedge_levels(found.price, found.volatility)
+    variables = {
+        "ticker": ticker,
+        "today": today.isoformat(),
+        "observations": format_observations(observations),
+        "hedge_levels": levels.model_dump_json() if levels else NO_HEDGE_LEVELS,
+    }
+    answer, generated_by = _ask(llm, RESEARCH_REPORT, variables, ReportAnswer, template_answer(found, levels), warnings)
+    return _checked_report(
+        answer, ticker=ticker, today=today, levels=levels, ok_tools=tools_with_status_ok(observations),
+        gaps=data_gaps(observations, tools_available), generated_by=generated_by, warnings=warnings,
     )
 
 
+# --- Task 3B: Agent B's final report ----------------------------------------------------------
+
+
+def write_final_report(
+    brief: DataBrief,
+    writer_observations: Sequence[dict],
+    writer_tools: Sequence[str],
+    response: ClarificationResponse,
+    llm: StructuredLLM | None,
+    today: date,
+) -> ResearchReport:
+    """Agent B's checked report from the brief, its own research and the clarification. Never raises."""
+    warnings: list[str] = []
+    levels = brief.hedge_levels
+    variables = {
+        "ticker": brief.ticker,
+        "today": today.isoformat(),
+        "brief": brief.model_dump_json(),
+        "observations": format_observations(writer_observations),
+        "clarification": response.model_dump_json(),
+        "hedge_levels": levels.model_dump_json() if levels else NO_HEDGE_LEVELS,
+    }
+    found = Snapshots(brief.price, brief.volatility, brief.sentiment)
+    fallback = FinalReportAnswer(**template_answer(found, levels).model_dump(), clarification_used=CLARIFICATION_NOT_USED)
+    answer, generated_by = _ask(llm, FINAL_REPORT, variables, FinalReportAnswer, fallback, warnings)
+
+    # Evidence may cite any tool either agent ran successfully (A's via the brief and its answer).
+    ok_tools = _unique([*brief.tools_called, *tools_with_status_ok(writer_observations), *response.tools_called])
+    return _checked_report(
+        answer, ticker=brief.ticker, today=today, levels=levels, ok_tools=ok_tools,
+        gaps=[*brief.data_gaps, *data_gaps(writer_observations, writer_tools)], generated_by=generated_by,
+        warnings=warnings, clarification_used=answer.clarification_used,
+    )
+
+
+# --- shared steps -------------------------------------------------------------------------------
+
+
 def format_observations(observations: Sequence[dict]) -> str:
-    """The observations as the report prompt sees them: each call's arguments and the digest the agent read."""
+    """The observations as a prompt sees them: each call's arguments and the digest the agent read."""
     rows = []
     for number, obs in enumerate(observations, 1):
         digest = json.loads(obs["digest"]) if obs.get("digest") else {"tool": obs["tool"], "status": obs["status"]}
@@ -191,11 +241,7 @@ def latest_ok(observations: Sequence[dict], tool: str) -> dict | None:
 
 def tools_with_status_ok(observations: Sequence[dict]) -> list[str]:
     """Each tool that returned at least one ok result, in first-call order."""
-    names: list[str] = []
-    for obs in observations:
-        if obs["status"] == "ok" and obs["tool"] not in names:
-            names.append(obs["tool"])
-    return names
+    return _unique([obs["tool"] for obs in observations if obs["status"] == "ok"])
 
 
 def data_gaps(observations: Sequence[dict], tools_available: Sequence[str]) -> list[str]:
@@ -211,22 +257,16 @@ def data_gaps(observations: Sequence[dict], tools_available: Sequence[str]) -> l
     return gaps
 
 
-def template_answer(observations: Sequence[dict], levels: HedgeLevels | None) -> ReportAnswer:
-    """A plain report from the observations alone, used when no LLM can write one.
+def template_answer(found: Snapshots, levels: HedgeLevels | None) -> ReportAnswer:
+    """A plain report from the numbers alone, used when no LLM can write one.
 
     It quotes the numbers directly, so it is accurate but generic: the three
     risks are always trend, volatility and news sentiment.
     """
-    price_obs = latest_ok(observations, GET_PRICE_DATA)
-    vol_obs = latest_ok(observations, CALCULATE_VOLATILITY)
-    sent_obs = latest_ok(observations, LLM_SENTIMENT)
-    price = PriceData.model_validate(price_obs["result"]["data"]) if price_obs else None
-    vol = VolatilityStats.model_validate(vol_obs["result"]["data"]) if vol_obs else None
-    sentiment = SentimentStats.model_validate(sent_obs["result"]["data"]).summary if sent_obs else None
-
+    price, vol, sentiment = found.price, found.volatility, found.sentiment
     if price:
         trend = (
-            f"The price closed at {price.latest.close:.2f} on {price.as_of}, "
+            f"The price closed at {price.close:.2f} on {price.as_of}, "
             f"{_signed(price.close_vs_sma_200_pct)} from its 200-day average and {_signed(price.close_vs_sma_50_pct)} from its 50-day average."
         )
         trend_fact = EvidenceAnswer(fact=f"Close {_signed(price.close_vs_sma_200_pct)} vs the 200-day average", source_tool="get_price_data")
@@ -272,6 +312,35 @@ def template_answer(observations: Sequence[dict], levels: HedgeLevels | None) ->
     )
 
 
+def _ask(llm, prompt, variables, schema, fallback, warnings) -> tuple:
+    """The LLM's answer and 'llm', or the template `fallback` and 'template' when no model answers."""
+    if llm is None:
+        _warn(warnings, "no LLM is available for the report, so it was written from a template")
+        return fallback, "template"
+    result = llm.call(prompt, variables, schema, fallback=fallback, reasoning_effort=REPORT_EFFORT)
+    if not result.ok:
+        _warn(warnings, f"the report model failed ({result.error}), so the report was written from a template")
+    return result.value, "llm" if result.ok else "template"
+
+
+def _checked_report(
+    answer: ReportAnswer, *, ticker: str, today: date, levels: HedgeLevels | None, ok_tools: list[str],
+    gaps: list[str], generated_by: str, warnings: list[str], clarification_used: str | None = None,
+) -> ResearchReport:
+    return ResearchReport(
+        ticker=ticker,
+        as_of=today,
+        financial_health_summary=answer.financial_health_summary,
+        top_risks=[_checked_risk(risk, ok_tools, warnings) for risk in answer.top_risks],
+        hedge=_hedge_strategy(answer.hedge, levels, warnings),
+        data_gaps=gaps,
+        tools_called=ok_tools,
+        generated_by=generated_by,
+        warnings=warnings,
+        clarification_used=clarification_used,
+    )
+
+
 def _checked_risk(risk: RiskAnswer, ok_tools: Sequence[str], warnings: list[str]) -> Risk:
     """The risk with only the evidence that cites a tool which returned an ok result in this run."""
     kept = [item for item in risk.evidence if item.source_tool in ok_tools]
@@ -292,6 +361,10 @@ def _hedge_strategy(answer: HedgeAnswer, levels: HedgeLevels | None, warnings: l
             _warn(warnings, f"hedge leg '{leg.action} {leg.instrument}' names an unknown level {leg.level!r}, so it has no price")
         legs.append(HedgeLeg(action=leg.action, instrument=leg.instrument, level_name=leg.level, level=level.level if level else None))
     return HedgeStrategy(strategy=answer.strategy, legs=legs, rationale=answer.rationale, levels=levels)
+
+
+def _unique(names: Sequence[str]) -> list[str]:
+    return list(dict.fromkeys(names))
 
 
 def _problem(obs: dict) -> str:
