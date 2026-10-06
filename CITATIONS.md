@@ -84,6 +84,10 @@ of the assessment brief. Every AI-assisted block also carries an inline
 | 2026-10-06 | Claude (claude-opus-5-5) | `common/jev.py` | 'Build the Task 1 notebook and the bonus report as designed in the grilling rounds' | A missing key is warned about once at start-up, not again for every headline |
 | 2026-10-06 | Claude (claude-opus-5-5) | `tests/test_jev.py` | 'Build the Task 1 notebook and the bonus report as designed in the grilling rounds' | Missing-key test checks the single warning |
 | 2026-10-06 | Claude (claude-opus-5-5) | `requirements.txt` | 'Build the Task 1 notebook and the bonus report as designed in the grilling rounds' | Adds markdown and matplotlib for the report |
+| 2026-10-07 | Claude (claude-opus-5-5) | `README.md` | 'Write the root README and a Task 1 REFLECTION as decided in the grilling round' | Root README: task status table with Colab badge, quick start, models and cost, engineering choices, repo map |
+| 2026-10-07 | Claude (claude-opus-5-5) | `REFLECTION.md` | 'Write the root README and a Task 1 REFLECTION as decided in the grilling round' | Draft of the Task 1 reflection (decisions, improvements, limitations) for the candidate to review and edit |
+| 2026-10-07 | Claude (claude-opus-5-5) | `task1_financial/task1_equity_research.ipynb` | 'Write the root README and a Task 1 REFLECTION as decided in the grilling round' | Jev described as a deliberate, optional paid exception instead of an approved one |
+| 2026-10-07 | Claude (claude-opus-5-5) | `CLAUDE.md` | 'Write the root README and a Task 1 REFLECTION as decided in the grilling round' | Rule 5 wording: Jev is a deliberate exception, never called approved in public docs |
 | 2026-10-06 | Claude (claude-opus-5-5) | `CITATIONS.md` | 'Create the cite-ai-usage skill' | This file's structure |
 
 ## Adapted open-source code
