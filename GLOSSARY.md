@@ -1,6 +1,7 @@
 <!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Grill the Task 1A news headlines design and record the resolved terms', Date: 2026-10-06 -->
 <!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Grill Task 1B (Jev sentiment decisions, LLM text) and record the resolved terms', Date: 2026-10-06 -->
 <!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 1: the five agent tools, their tests and the new-tool skill, as designed in the grilling rounds', Date: 2026-10-07 -->
+<!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 2: the 3A agent loop, report, hedge levels, printer and short-term memory, as designed in the grilling rounds', Date: 2026-10-07 -->
 # Equity research
 
 The words this repo uses for the market data, news and analysis behind a
@@ -57,6 +58,18 @@ _Avoid_: Tool output, response, observation
 The short JSON view of a tool result that the agent's model reads; the full
 data stays in the tool result for code to use.
 _Avoid_: Summary, observation, tool message
+
+**Observation**:
+One tool call as the agent loop records it: the tool, its arguments, the
+agent's stated reason (`why`), the status, the digest the agent read, and the
+full tool result. The report is written from the observations alone.
+_Avoid_: Step, event, tool message
+
+**Expected move**:
+The one-standard-deviation price change over the hedge horizon: price x
+volatility x sqrt(63 / 252) for 90 days. About two times in three the price
+ends within one expected move of today's.
+_Avoid_: Range, volatility band
 
 **Agent trace**:
 The `agent_trace.jsonl` log: one line per tool call (and per handoff,

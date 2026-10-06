@@ -5,8 +5,10 @@ everything (for example every price bar in the period); `digest()` is the
 compact view the agent reads, because Groq's free tier allows 8K tokens a
 minute and every tool message is re-sent on each agent turn.
 
-The one schema an LLM answers is HeadlineLabels (sent as a strict JSON schema
-by common/llm.py), so every field is required and described.
+The schemas an LLM answers (HeadlineLabels and ReportAnswer, sent as strict
+JSON schemas by common/llm.py) have every field required and described.
+ResearchReport is the record built from ReportAnswer: code checks the
+evidence and fills in every hedge level, so the LLM never supplies a number.
 """
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 1: the five agent tools, their tests and the new-tool skill, as designed in the grilling rounds', Date: 2026-10-07
 
@@ -16,10 +18,15 @@ import json
 from datetime import date
 from typing import Any, Generic, Literal, TypeVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from task1_financial.news import Headline
-from task1_financial.schemas import HeadlineSentiment, Sentiment, SentimentSummary
+from task1_financial.schemas import (
+    HeadlineSentiment,
+    Sentiment,
+    SentimentSummary,
+    count_sentences,
+)
 
 DIGEST_DECIMALS = 2
 DIGEST_LAST_BARS = 5  # recent bars shown to the agent; the typed result keeps the whole period
@@ -228,3 +235,151 @@ class SearchResults(BaseModel):
                 for hit in self.hits
             ],
         }
+
+
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 2: the 3A agent loop, report, hedge levels, printer and short-term memory, as designed in the grilling rounds', Date: 2026-10-07
+# --- the research report: what the LLM answers, and the record built from it -------
+
+ToolName = Literal["get_price_data", "calculate_volatility", "get_news", "llm_sentiment", "web_search"]
+HedgeStrategyName = Literal["protective_put", "collar", "put_spread", "trim_and_stop"]
+ReportSource = Literal["llm", "template"]
+
+MIN_SUMMARY_SENTENCES = 3
+MAX_SUMMARY_SENTENCES = 5
+TOP_RISKS = 3
+MIN_EVIDENCE = 1
+MAX_EVIDENCE = 3
+MAX_HEDGE_LEGS = 3
+PREMIUM_NOTE = (
+    "Option premiums are not priced: no tool returns option chains. Levels are indicative strikes "
+    "from the expected move and price levels; price the legs from a live chain before acting."
+)
+
+
+class HedgeLevel(BaseModel):
+    """One candidate strike or stop level, computed by code from the tool results."""
+
+    name: str = Field(description="The name the report uses for this level, such as one_sd_low")
+    level: float
+    pct_from_price: float = Field(description="Distance from the current price in percent; negative is below")
+    meaning: str
+
+
+class HedgeLevels(BaseModel):
+    """The numbers a hedge is built from: the expected 90-day move and the candidate levels around it."""
+
+    price: float
+    volatility_pct: float = Field(description="Annualised volatility used, in percent")
+    volatility_source: str = Field(description="Which tool result the volatility came from")
+    horizon_trading_days: int
+    expected_move: float = Field(description="price x volatility x sqrt(horizon / 252): a one-standard-deviation move")
+    expected_move_pct: float
+    candidates: list[HedgeLevel]
+
+    def by_name(self) -> dict[str, HedgeLevel]:
+        return {candidate.name: candidate for candidate in self.candidates}
+
+
+class EvidenceAnswer(BaseModel):
+    fact: str = Field(description="A specific number, label or quote taken from the observations")
+    source_tool: ToolName = Field(description="The tool whose result contains this fact")
+
+
+class RiskAnswer(BaseModel):
+    title: str = Field(description="A short name for the risk, at most 8 words")
+    explanation: str = Field(description="One or two sentences on how this could move the share price in the next 90 days")
+    evidence: list[EvidenceAnswer] = Field(min_length=MIN_EVIDENCE, max_length=MAX_EVIDENCE, description="One to three facts supporting the risk")
+
+
+class HedgeLegAnswer(BaseModel):
+    action: Literal["buy", "sell"]
+    instrument: Literal["put", "call", "shares", "stop_loss"]
+    level: str | None = Field(description="The name of one candidate level (such as one_sd_low); null for a shares leg")
+
+
+class HedgeAnswer(BaseModel):
+    strategy: HedgeStrategyName
+    legs: list[HedgeLegAnswer] = Field(min_length=1, max_length=MAX_HEDGE_LEGS, description="The trades that make up the hedge")
+    rationale: str = Field(description="Two to four sentences tying the strategy and its levels to the three risks and the volatility")
+
+
+class ReportAnswer(BaseModel):
+    """The LLM's research report, written only from the observations it is given."""
+
+    financial_health_summary: str = Field(
+        description="Three to five sentences on trend, momentum, volatility and sentiment, each quoting numbers from the observations"
+    )
+    top_risks: list[RiskAnswer] = Field(min_length=TOP_RISKS, max_length=TOP_RISKS, description="Exactly three distinct risks")
+    hedge: HedgeAnswer
+
+    @field_validator("financial_health_summary")
+    @classmethod
+    def three_to_five_sentences(cls, value: str) -> str:
+        sentences = count_sentences(value)
+        if not MIN_SUMMARY_SENTENCES <= sentences <= MAX_SUMMARY_SENTENCES:
+            raise ValueError(
+                f"financial_health_summary has {sentences} sentences; write between "
+                f"{MIN_SUMMARY_SENTENCES} and {MAX_SUMMARY_SENTENCES}"
+            )
+        return value
+
+
+class HedgeLeg(BaseModel):
+    action: Literal["buy", "sell"]
+    instrument: Literal["put", "call", "shares", "stop_loss"]
+    level_name: str | None
+    level: float | None = Field(description="Filled in by code from the candidate levels, never by the LLM")
+
+
+class HedgeStrategy(BaseModel):
+    strategy: HedgeStrategyName
+    legs: list[HedgeLeg]
+    rationale: str
+    levels: HedgeLevels | None
+    note: str = PREMIUM_NOTE
+
+
+class Risk(BaseModel):
+    title: str
+    explanation: str
+    evidence: list[EvidenceAnswer]
+
+
+class ResearchReport(BaseModel):
+    """The final research report: the LLM's sections, checked and completed by code."""
+
+    ticker: str
+    as_of: date
+    financial_health_summary: str
+    top_risks: list[Risk]
+    hedge: HedgeStrategy
+    data_gaps: list[str] = Field(description="Tools that failed or were never called, and what is missing as a result")
+    tools_called: list[str] = Field(description="Every tool that returned a usable result, in call order")
+    generated_by: ReportSource
+    warnings: list[str] = Field(default_factory=list)
+
+    def to_markdown(self) -> str:
+        """The report as Markdown, for display in the notebook."""
+        lines = [f"# {self.ticker} research report ({self.as_of})", ""]
+        if self.generated_by == "template":
+            lines += ["> Written from a template: the report model was unavailable.", ""]
+        lines += ["## Financial Health Summary", "", self.financial_health_summary, "", "## Top Three Risks", ""]
+        for number, risk in enumerate(self.top_risks, 1):
+            lines.append(f"{number}. **{risk.title}**: {risk.explanation}")
+            lines += [f"   - {item.fact} _(source: {item.source_tool})_" for item in risk.evidence]
+        hedge = self.hedge
+        lines += ["", "## Hedge Strategy Recommendation", "", f"**{hedge.strategy.replace('_', ' ').title()}**", ""]
+        for leg in hedge.legs:
+            where = f" at {leg.level:.2f} ({leg.level_name})" if leg.level is not None else ""
+            lines.append(f"- {leg.action} {leg.instrument.replace('_', ' ')}{where}")
+        lines += ["", hedge.rationale, ""]
+        if hedge.levels:
+            lv = hedge.levels
+            lines.append(
+                f"Expected {lv.horizon_trading_days}-trading-day move: ±{lv.expected_move:.2f} "
+                f"({lv.expected_move_pct:.1f}%) from {lv.price:.2f}, using {lv.volatility_pct:.1f}% volatility ({lv.volatility_source})."
+            )
+        lines += ["", f"_{hedge.note}_"]
+        if self.data_gaps:
+            lines += ["", "## Data gaps", ""] + [f"- {gap}" for gap in self.data_gaps]
+        return "\n".join(lines)

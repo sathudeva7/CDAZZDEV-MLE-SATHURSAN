@@ -34,7 +34,8 @@ keep it true in the same change.
    the name constant and `TOOL_NAMES`, `self._tools`, `TOOL_DESCRIPTIONS`
    (written for the agent's model: what it returns and when to use it),
    `TOOL_ARGS` (plain `str`/`int` fields with descriptions, so out-of-range
-   values reach the tool and get traced), `TOOL_ADVICE` and `ALTERNATIVES`.
+   values reach the tool and get traced; `AGENT_TOOL_ARGS` adds the required
+   `why` automatically), `TOOL_ADVICE` and `ALTERNATIVES`.
    Add a public method that goes through `self.call(...)`.
 4. **Wire alternatives both ways.** Add the new tool as an alternative under
    every existing tool whose gap it can fill.
