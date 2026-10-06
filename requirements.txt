@@ -1,6 +1,7 @@
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build the llm-structured-call skill with its shared helper and tests', Date: 2026-10-06
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 1B (Jev headline sentiment, LLM reasons and Recommendation) as designed in the grilling rounds', Date: 2026-10-06
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build the Task 1 notebook and the bonus report as designed in the grilling rounds', Date: 2026-10-06
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 1: the five agent tools, their tests and the new-tool skill, as designed in the grilling rounds', Date: 2026-10-07
 # Minimum versions only, so Colab's preinstalled packages are reused where they qualify.
 openai>=3.24
 pydantic>=2.7
@@ -12,3 +13,6 @@ yfinance>=1.7
 typesafe-sdk>=0.7.2
 markdown>=3.5
 matplotlib>=3.8
+langgraph>=1.2
+langchain-openai>=1.6
+ddgs>=9  # the renamed duckduckgo-search; that package stopped at 8.1.1

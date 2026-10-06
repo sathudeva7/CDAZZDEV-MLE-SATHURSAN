@@ -1,5 +1,6 @@
 <!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Grill the Task 1A news headlines design and record the resolved terms', Date: 2026-10-06 -->
 <!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Grill Task 1B (Jev sentiment decisions, LLM text) and record the resolved terms', Date: 2026-10-06 -->
+<!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 1: the five agent tools, their tests and the new-tool skill, as designed in the grilling rounds', Date: 2026-10-07 -->
 # Equity research
 
 The words this repo uses for the market data, news and analysis behind a
@@ -44,3 +45,21 @@ _Avoid_: Signal, technical signal, trend signal
 The LLM's Buy, Hold or Sell call for the ticker, with a justification that
 reasons over the indicators and the sentiment score together.
 _Avoid_: Signal, rating, verdict, trade signal
+
+## Agents
+
+**Tool result**:
+What one agent tool call returns: a status (ok, empty or error), the tool's
+data, and, on failure, a hint naming the other tools that could fill the gap.
+_Avoid_: Tool output, response, observation
+
+**Digest**:
+The short JSON view of a tool result that the agent's model reads; the full
+data stays in the tool result for code to use.
+_Avoid_: Summary, observation, tool message
+
+**Agent trace**:
+The `agent_trace.jsonl` log: one line per tool call (and per handoff,
+critique and cache lookup) with its inputs, digest cut to 200 characters,
+status and duration.
+_Avoid_: Log, call log (that is the LLM's `llm_calls.jsonl`)
