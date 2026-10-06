@@ -5,6 +5,7 @@ JSON shape the live probe returned) or raises a scripted SDK error, and
 records each request. The real API is checked by tests/test_live_analysis.py.
 """
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 1B (Jev headline sentiment, LLM reasons and Recommendation) as designed in the grilling rounds', Date: 2026-10-06
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build the Task 1 notebook and the bonus report as designed in the grilling rounds', Date: 2026-10-06
 
 from __future__ import annotations
 
@@ -127,11 +128,13 @@ def test_a_bad_key_fails_every_call_without_raising(tmp_path):
     assert len(fake.requests) == 2
 
 
-def test_missing_key_means_no_requests(tmp_path, monkeypatch):
+def test_missing_key_means_no_requests(tmp_path, monkeypatch, caplog):
     monkeypatch.delenv("JEV_API_KEY", raising=False)
     jev = JevClient(tmp_path, profile=PROFILE)
 
-    result = jev.choose(QUESTION, {"headline": "h"})
+    results = [jev.choose(QUESTION, {"headline": h}) for h in ("a", "b", "c")]
 
-    assert not result.ok and "JEV_API_KEY is not set" in result.error
+    assert all(not r.ok and "JEV_API_KEY is not set" in r.error for r in results)
     assert log_lines(tmp_path)[0]["provider"] is None
+    # Warned once when the client was built, not again for every headline.
+    assert sum("JEV_API_KEY" in record.getMessage() for record in caplog.records if record.levelname == "WARNING") == 1
