@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 1A step 2, news headlines, as designed in the grilling rounds', Date: 2026-10-06 -->
+<!-- Hand-written in the shape of the Yahoo Finance headline feed: RSS 2.0 items with no <source> tag. -->
+<rss version="2.0">
+  <channel>
+    <title>Yahoo! Finance: AAPL News</title>
+    <description>Latest Financial News for AAPL</description>
+    <item>
+      <title>Apple shares climb ahead of product event</title>
+      <link>https://finance.yahoo.com/news/apple-shares-climb-120000000.html?.tsrc=rss</link>
+      <guid isPermaLink="false">apple-shares-climb-120000000</guid>
+      <pubDate>Mon, 05 Oct 2026 12:00:00 +0000</pubDate>
+      <description>Shares rose 2% in early trading.</description>
+    </item>
+    <item>
+      <title>Analysts   raise Apple price target  &amp; cite iPhone demand</title>
+      <link>https://finance.yahoo.com/news/analysts-raise-apple-090000000.html?.tsrc=rss</link>
+      <guid isPermaLink="false">analysts-raise-apple-090000000</guid>
+      <pubDate>Tue, 06 Oct 2026 09:00:00 +0000</pubDate>
+    </item>
+    <item>
+      <title>Apple faces EU antitrust fine - what it means</title>
+      <link>https://finance.yahoo.com/news/apple-eu-fine-150000000.html?.tsrc=rss</link>
+      <guid isPermaLink="false">apple-eu-fine-150000000</guid>
+      <pubDate>Sun, 20 Sep 2026 15:00:00 +0000</pubDate>
+    </item>
+    <item>
+      <title>Apple supplier outlook steady</title>
+      <link>https://finance.yahoo.com/news/apple-supplier-outlook.html?.tsrc=rss</link>
+    </item>
+    <item>
+      <title>Apple dividend date confirmed</title>
+      <link>https://finance.yahoo.com/news/apple-dividend-date.html?.tsrc=rss</link>
+      <pubDate>sometime last week</pubDate>
+    </item>
+    <item>
+      <title>   </title>
+      <pubDate>Mon, 05 Oct 2026 08:00:00 +0000</pubDate>
+    </item>
+  </channel>
+</rss>

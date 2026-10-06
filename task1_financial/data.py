@@ -1,6 +1,7 @@
 """Daily prices and fundamentals from Yahoo Finance, through yfinance.
 
-This is the only module in the repo that talks to Yahoo. It never raises for
+This is the only module in the repo that calls yfinance (news.py reads Yahoo's
+RSS feed directly). It never raises for
 a data problem: a failed or empty fetch is retried, then becomes an empty
 result plus a warning, so the pipeline still runs to completion.
 
@@ -69,7 +70,7 @@ def fetch_ohlcv(ticker: str, today: date) -> PriceHistory:
     start = (pd.Timestamp(end) - pd.DateOffset(years=LOOKBACK_YEARS)).date()
     warnings: list[str] = []
 
-    raw = _with_retries(
+    raw = with_retries(
         lambda: yf.download(
             ticker, start=start, end=end, auto_adjust=True, multi_level_index=False, progress=False
         ),
@@ -121,7 +122,7 @@ def clean_ohlcv(raw: pd.DataFrame, warnings: list[str] | None = None) -> pd.Data
 def fetch_fundamentals(ticker: str) -> Fundamentals:
     """Company name, currency, trailing P/E and EPS from Yahoo; empty fields when unavailable."""
     warnings: list[str] = []
-    info = _with_retries(
+    info = with_retries(
         lambda: yf.Ticker(ticker).info,
         what=f"{ticker} fundamentals",
         is_empty=lambda result: not result,
@@ -136,8 +137,12 @@ def fetch_fundamentals(ticker: str) -> Fundamentals:
     )
 
 
-def _with_retries(fetch: Callable[[], T], what: str, is_empty: Callable[[T], bool], warnings: list[str]) -> T | None:
-    """`fetch()`'s first non-empty result, trying FETCH_RETRIES times; None and a warning if all fail."""
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 1A step 2, news headlines, as designed in the grilling rounds', Date: 2026-10-06
+def with_retries(fetch: Callable[[], T], what: str, is_empty: Callable[[T], bool], warnings: list[str]) -> T | None:
+    """`fetch()`'s first non-empty result, trying FETCH_RETRIES times; None and a warning if all fail.
+
+    Public because news.py retries its feeds the same way.
+    """
     problem = "empty result"
     for attempt in range(FETCH_RETRIES):
         if attempt:
@@ -146,8 +151,8 @@ def _with_retries(fetch: Callable[[], T], what: str, is_empty: Callable[[T], boo
             time.sleep(wait)
         try:
             result = fetch()
-        # yfinance raises network, HTTP and parsing errors of many unrelated types, and
-        # a failed fetch must become a warning, never a crash.
+        # yfinance and the news feeds raise network, HTTP and parsing errors of many
+        # unrelated types, and a failed fetch must become a warning, never a crash.
         except Exception as exc:  # noqa: BLE001
             problem = f"{type(exc).__name__}: {exc}"
             continue

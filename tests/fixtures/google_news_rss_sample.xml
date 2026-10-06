@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 1A step 2, news headlines, as designed in the grilling rounds', Date: 2026-10-06 -->
+<!-- Hand-written in the shape of the Google News search feed: each title ends in " - <Publisher>" and repeats the <source> tag. -->
+<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
+  <channel>
+    <generator>NFE/5.0</generator>
+    <title>"AAPL stock" - Google News</title>
+    <item>
+      <title>Apple Shares Climb Ahead of Product Event - Reuters</title>
+      <link>https://news.google.com/rss/articles/CBMiAAA?oc=5</link>
+      <guid isPermaLink="false">CBMiAAA</guid>
+      <pubDate>Mon, 05 Oct 2026 13:30:00 GMT</pubDate>
+      <description>&lt;a href="https://news.google.com/rss/articles/CBMiAAA?oc=5"&gt;Apple Shares Climb&lt;/a&gt;</description>
+      <source url="https://www.reuters.com">Reuters</source>
+    </item>
+    <item>
+      <title>Here's How Many Shares of Apple You'd Need for $10,000 in Dividends - Yahoo Finance</title>
+      <link>https://news.google.com/rss/articles/CBMiBBB?oc=5</link>
+      <guid isPermaLink="false">CBMiBBB</guid>
+      <pubDate>Tue, 06 Oct 2026 03:06:00 GMT</pubDate>
+      <source url="https://finance.yahoo.com">Yahoo Finance</source>
+    </item>
+    <item>
+      <title>Is Apple stock a buy - or a sell - after the rally?</title>
+      <link>https://news.google.com/rss/articles/CBMiCCC?oc=5</link>
+      <guid isPermaLink="false">CBMiCCC</guid>
+      <pubDate>Sat, 03 Oct 2026 18:30:02 GMT</pubDate>
+    </item>
+  </channel>
+</rss>
