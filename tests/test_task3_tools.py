@@ -1,19 +1,18 @@
 """Offline tests for task3_agentic/tools.py, with yfinance, the news feeds, DuckDuckGo and the LLM replaced by fakes."""
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 1: the five agent tools, their tests and the new-tool skill, as designed in the grilling rounds', Date: 2026-10-07
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 2: the 3A agent loop, report, hedge levels, printer and short-term memory, as designed in the grilling rounds', Date: 2026-10-07
 
 from __future__ import annotations
 
 import json
-from datetime import date
-from typing import ClassVar
 
-import numpy as np
 import pandas as pd
 import pytest
 from ddgs.exceptions import RatelimitException
 from langchain_core.messages import ToolMessage
+from pydantic import ValidationError
 
-from task1_financial import data, news
+from task1_financial import news
 from task1_financial.indicators import (
     COL_VOLATILITY,
     add_indicators,
@@ -32,82 +31,18 @@ from task3_agentic.tools import (
     TOOL_NAMES,
     VOLATILITY_HISTORY_DAYS,
     WEB_SEARCH,
-    ToolSession,
     percentile_rank,
 )
-from task3_agentic.trace import TRACE_FILE_NAME, TRACE_OUTPUT_CHARS
-from tests.fakes import ScriptedLLM
+from task3_agentic.trace import TRACE_OUTPUT_CHARS
+from tests.fakes import (
+    TODAY,
+    ScriptedLLM,
+    make_session,
+    trace_lines,
+    two_years_of_bars,
+)
 
-TODAY = date(2026, 10, 6)
 AGENT_A_TOOLS = (GET_PRICE_DATA, CALCULATE_VOLATILITY, LLM_SENTIMENT)
-
-
-def two_years_of_bars() -> pd.DataFrame:
-    """A seeded random walk, so volatility changes over time and the percentile means something."""
-    days = pd.bdate_range("2024-10-07", "2026-10-06", name="Date")
-    rng = np.random.default_rng(7)
-    close = 200.0 * np.exp(np.cumsum(rng.normal(0, 0.015, len(days))))
-    return pd.DataFrame({"Open": close, "High": close * 1.01, "Low": close * 0.99, "Close": close, "Volume": 1_000.0}, index=days)
-
-
-@pytest.fixture
-def sleeps(monkeypatch):
-    """Record the retry backoff waits instead of sleeping."""
-    waited: list[float] = []
-    monkeypatch.setattr(data.time, "sleep", waited.append)
-    return waited
-
-
-@pytest.fixture
-def downloads(monkeypatch, sleeps):
-    """Replace yf.download; `frames` holds what each download returns (the last one repeats)."""
-    calls: list[str] = []
-    frames = [two_years_of_bars()]
-
-    def fake_download(ticker, **_):
-        calls.append(ticker)
-        return frames[min(len(calls), len(frames)) - 1]
-
-    monkeypatch.setattr(data.yf, "download", fake_download)
-    return type("Downloads", (), {"calls": calls, "frames": frames})
-
-
-class FakeSearch:
-    """Stands in for ddgs.DDGS: a reply per backend is a list of rows or an exception to raise."""
-
-    replies: ClassVar[dict[str, object]] = {}
-    queries: ClassVar[list[tuple[str, str]]] = []
-
-    def __init__(self, timeout=None):
-        pass
-
-    def text(self, query, max_results):
-        return self._reply("text", query)
-
-    def news(self, query, max_results):
-        return self._reply("news", query)
-
-    def _reply(self, backend, query):
-        FakeSearch.queries.append((backend, query))
-        reply = FakeSearch.replies.get(backend, [])
-        if isinstance(reply, Exception):
-            raise reply
-        return reply
-
-
-@pytest.fixture
-def search():
-    FakeSearch.replies, FakeSearch.queries = {}, []
-    return FakeSearch
-
-
-def make_session(tmp_path, llm=None, **kwargs) -> ToolSession:
-    return ToolSession(today=TODAY, subject="AAPL", log_dir=tmp_path, llm=llm or ScriptedLLM([]), search_factory=FakeSearch, **kwargs)
-
-
-def trace_lines(tmp_path) -> list[dict]:
-    path = tmp_path / TRACE_FILE_NAME
-    return [json.loads(line) for line in path.read_text().splitlines()] if path.exists() else []
 
 
 def labels(*entries) -> HeadlineLabels:
@@ -117,7 +52,7 @@ def labels(*entries) -> HeadlineLabels:
 # --- get_price_data ------------------------------------------------------------
 
 
-def test_price_data_is_trimmed_to_the_period_with_task1_indicators(tmp_path, downloads):
+def test_price_data_is_trimmed_to_the_period_with_task1_indicators(tmp_path, fake_prices):
     result = make_session(tmp_path).get_price_data("aapl", "6mo")
 
     assert result.status == "ok"
@@ -133,7 +68,7 @@ def test_price_data_is_trimmed_to_the_period_with_task1_indicators(tmp_path, dow
     assert price.close_vs_sma_200_pct == pytest.approx((full["Close"].iloc[-1] / full["sma_200"].iloc[-1] - 1) * 100)
 
 
-def test_price_digest_shows_latest_values_and_five_bars(tmp_path, downloads):
+def test_price_digest_shows_latest_values_and_five_bars(tmp_path, fake_prices):
     digest = make_session(tmp_path).get_price_data("AAPL", "1y").data.digest()
 
     assert len(digest["last_bars"]) == 5
@@ -141,7 +76,7 @@ def test_price_digest_shows_latest_values_and_five_bars(tmp_path, downloads):
     assert set(digest["indicators"]) >= {"rsi_14", "sma_50", "sma_200", "macd", "bb_pct_b", "hv_30"}
 
 
-def test_unknown_period_falls_back_to_the_default_with_a_warning(tmp_path, downloads):
+def test_unknown_period_falls_back_to_the_default_with_a_warning(tmp_path, fake_prices):
     result = make_session(tmp_path).get_price_data("AAPL", "5y")
 
     assert result.status == "ok"
@@ -149,19 +84,19 @@ def test_unknown_period_falls_back_to_the_default_with_a_warning(tmp_path, downl
     assert "5y" in result.warnings[0]
 
 
-def test_price_and_volatility_share_one_download(tmp_path, downloads):
+def test_price_and_volatility_share_one_download(tmp_path, fake_prices):
     session = make_session(tmp_path)
 
     session.get_price_data("AAPL")
     session.calculate_volatility("AAPL")
     session.get_price_data("AAPL", "1y")
 
-    assert downloads.calls == ["AAPL"]
+    assert fake_prices.calls == ["AAPL"]
     assert [line["cache_hit"] for line in trace_lines(tmp_path)] == [False, True, True]
 
 
-def test_no_prices_is_empty_and_hints_at_alternatives(tmp_path, downloads):
-    downloads.frames[0] = pd.DataFrame()
+def test_no_prices_is_empty_and_hints_at_alternatives(tmp_path, fake_prices):
+    fake_prices.frames[0] = pd.DataFrame()
     session = make_session(tmp_path)
 
     result = session.get_price_data("NOTATICKERZZ")
@@ -171,8 +106,8 @@ def test_no_prices_is_empty_and_hints_at_alternatives(tmp_path, downloads):
     assert "web_search" in result.hint and "NOTATICKERZZ" in result.hint
 
 
-def test_hint_names_only_tools_the_agent_has(tmp_path, downloads):
-    downloads.frames[0] = pd.DataFrame()
+def test_hint_names_only_tools_the_agent_has(tmp_path, fake_prices):
+    fake_prices.frames[0] = pd.DataFrame()
     session = make_session(tmp_path)
 
     price = session.call(GET_PRICE_DATA, {"ticker": "ZZZ"}, available=AGENT_A_TOOLS)
@@ -182,8 +117,8 @@ def test_hint_names_only_tools_the_agent_has(tmp_path, downloads):
     assert "get_price_data" in vol.hint and "web_search" not in vol.hint
 
 
-def test_an_empty_download_is_not_cached(tmp_path, downloads):
-    downloads.frames[:] = [pd.DataFrame(), two_years_of_bars()]
+def test_an_empty_download_is_not_cached(tmp_path, fake_prices):
+    fake_prices.frames[:] = [pd.DataFrame(), two_years_of_bars()]
     session = make_session(tmp_path)
     session.get_price_data("AAPL")  # three empty attempts
 
@@ -201,7 +136,7 @@ def test_percentile_rank_hand_checked():
     assert percentile_rank(history, 40.0) == 100.0
 
 
-def test_volatility_matches_task1_and_ranks_today_in_the_past_year(tmp_path, downloads):
+def test_volatility_matches_task1_and_ranks_today_in_the_past_year(tmp_path, fake_prices):
     result = make_session(tmp_path).calculate_volatility("AAPL", 30)
 
     series = annualised_volatility(two_years_of_bars()["Close"], 30).dropna()
@@ -214,7 +149,7 @@ def test_volatility_matches_task1_and_ranks_today_in_the_past_year(tmp_path, dow
     assert stats.observations == VOLATILITY_HISTORY_DAYS
 
 
-def test_volatility_window_is_clamped(tmp_path, downloads):
+def test_volatility_window_is_clamped(tmp_path, fake_prices):
     result = make_session(tmp_path).calculate_volatility("AAPL", 1000)
 
     assert result.data.window == MAX_VOLATILITY_WINDOW
@@ -229,7 +164,7 @@ def rss_with(count: int) -> bytes:
     return f"<rss><channel>{items}</channel></rss>".encode()
 
 
-def test_news_returns_headlines_and_clamps_n(tmp_path, monkeypatch, sleeps):
+def test_news_returns_headlines_and_clamps_n(tmp_path, monkeypatch, no_sleep):
     monkeypatch.setattr(news, "_download", lambda url: rss_with(30))
 
     result = make_session(tmp_path).get_news("AAPL", 50)
@@ -240,7 +175,7 @@ def test_news_returns_headlines_and_clamps_n(tmp_path, monkeypatch, sleeps):
     assert result.data.digest()["headlines"][0]["title"].startswith("Story")
 
 
-def test_no_news_is_empty_and_suggests_web_search(tmp_path, monkeypatch, sleeps):
+def test_no_news_is_empty_and_suggests_web_search(tmp_path, monkeypatch, no_sleep):
     def offline(url):
         raise OSError("network down")
 
@@ -309,9 +244,9 @@ def test_a_bare_headline_string_is_one_headline(tmp_path):
 # --- web_search --------------------------------------------------------------------
 
 
-def test_web_search_maps_text_results(tmp_path, search, sleeps):
+def test_web_search_maps_text_results(tmp_path, fake_search, no_sleep):
     rows = [{"title": f"T{i}", "href": f"https://x/{i}", "body": "snippet"} for i in range(8)]
-    search.replies["text"] = rows
+    fake_search.replies["text"] = rows
 
     result = make_session(tmp_path).web_search("AAPL analyst outlook")
 
@@ -321,9 +256,9 @@ def test_web_search_maps_text_results(tmp_path, search, sleeps):
     assert result.data.hits[0].url == "https://x/0"
 
 
-def test_rate_limited_web_search_falls_back_to_news_search(tmp_path, search, sleeps):
-    search.replies["text"] = RatelimitException("202 Ratelimit")
-    search.replies["news"] = [{"title": "N", "url": "https://n", "body": "b", "date": "2026-10-06T14:25:00+00:00"}]
+def test_rate_limited_web_search_falls_back_to_news_search(tmp_path, fake_search, no_sleep):
+    fake_search.replies["text"] = RatelimitException("202 Ratelimit")
+    fake_search.replies["news"] = [{"title": "N", "url": "https://n", "body": "b", "date": "2026-10-06T14:25:00+00:00"}]
 
     result = make_session(tmp_path).web_search("AAPL risks")
 
@@ -331,11 +266,11 @@ def test_rate_limited_web_search_falls_back_to_news_search(tmp_path, search, sle
     assert result.data.backend == "news"
     assert result.data.hits[0].published.startswith("2026-10-06")
     assert any("RatelimitException" in w for w in result.warnings)
-    assert len(sleeps) == 2  # the text search was retried with backoff before switching
+    assert len(no_sleep) == 2  # the text search was retried with backoff before switching
 
 
-def test_failed_search_is_empty_and_suggests_get_news(tmp_path, search, sleeps):
-    search.replies["text"] = RatelimitException("202 Ratelimit")
+def test_failed_search_is_empty_and_suggests_get_news(tmp_path, fake_search, no_sleep):
+    fake_search.replies["text"] = RatelimitException("202 Ratelimit")
 
     result = make_session(tmp_path).web_search("AAPL risks")
 
@@ -379,7 +314,7 @@ def test_an_empty_ticker_is_an_error_not_an_exception(tmp_path):
     assert make_session(tmp_path).get_price_data("  ").status == "error"
 
 
-def test_every_call_writes_one_trace_line(tmp_path, downloads):
+def test_every_call_writes_one_trace_line(tmp_path, fake_prices):
     session = make_session(tmp_path)
 
     session.get_price_data("AAPL", agent="single")
@@ -397,18 +332,30 @@ def test_every_call_writes_one_trace_line(tmp_path, downloads):
 # --- LangChain tools ---------------------------------------------------------------------
 
 
-def test_langchain_tools_are_restricted_and_carry_the_typed_result(tmp_path, downloads):
+def test_langchain_tools_are_restricted_and_carry_the_typed_result(tmp_path, fake_prices):
     session = make_session(tmp_path)
     agent_tools = session.langchain_tools(AGENT_A_TOOLS, agent="A")
 
     assert [tool.name for tool in agent_tools] == list(AGENT_A_TOOLS)
-    message = agent_tools[0].invoke({"type": "tool_call", "id": "call_1", "name": GET_PRICE_DATA, "args": {"ticker": "AAPL"}})
+    call = {"type": "tool_call", "id": "call_1", "name": GET_PRICE_DATA, "args": {"why": "Need the trend first", "ticker": "AAPL"}}
+    message = agent_tools[0].invoke(call)
 
     assert isinstance(message, ToolMessage)
     assert json.loads(message.content)["status"] == "ok"
     assert isinstance(message.artifact, ToolResult) and message.artifact.data.ticker == "AAPL"
     line = trace_lines(tmp_path)[0]
     assert line["agent"] == "A" and line["args"] == {"ticker": "AAPL", "period": "6mo"}
+    assert line["why"] == "Need the trend first"
+
+
+def test_agent_arguments_put_why_first_and_require_it():
+    schema = tools.AGENT_TOOL_ARGS[GET_PRICE_DATA].model_json_schema()
+
+    assert next(iter(schema["properties"])) == tools.WHY_ARG
+    assert tools.WHY_ARG in schema["required"]
+    assert tools.split_agent_args(GET_NEWS, {"why": "w", "ticker": "AAPL"}) == ({"ticker": "AAPL", "n": tools.DEFAULT_NEWS_COUNT}, "w")
+    with pytest.raises(ValidationError):
+        tools.split_agent_args(GET_NEWS, {"ticker": "AAPL"})
 
 
 def test_langchain_tools_reject_unknown_names(tmp_path):

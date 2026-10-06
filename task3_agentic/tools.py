@@ -43,7 +43,7 @@ from uuid import uuid4
 import pandas as pd
 from ddgs import DDGS
 from langchain_core.tools import StructuredTool
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, create_model
 
 from common.llm import StructuredLLM
 from task1_financial.data import fetch_ohlcv, with_retries
@@ -224,6 +224,33 @@ TOOL_ARGS: dict[str, type[BaseModel]] = {
     WEB_SEARCH: SearchArgs,
 }
 
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 2: the 3A agent loop, report, hedge levels, printer and short-term memory, as designed in the grilling rounds', Date: 2026-10-07
+# Agents get one extra, required argument: `why`. Live tests showed gpt-oss (Groq) and
+# the OpenRouter fallback both leave the message text empty when they call a tool,
+# even when told to write a note, but both fill a required argument. `why` is
+# traced and printed (the visible observe -> replan step), then dropped before the
+# tool runs, so the Python methods keep the brief's exact signatures.
+WHY_ARG = "why"
+WHY_DESCRIPTION = "One sentence: what you have observed so far, and why this call is the right next step"
+
+
+def _with_why(args: type[BaseModel]) -> type[BaseModel]:
+    """`args` with `why` added as its first field, so the model states its reason before the parameters."""
+    fields = {name: (field.annotation, field) for name, field in args.model_fields.items()}
+    return create_model(args.__name__.replace("Args", "AgentArgs"), **{WHY_ARG: (str, Field(description=WHY_DESCRIPTION))}, **fields)
+
+
+AGENT_TOOL_ARGS: dict[str, type[BaseModel]] = {name: _with_why(schema) for name, schema in TOOL_ARGS.items()}
+
+
+def split_agent_args(tool: str, raw: dict[str, Any]) -> tuple[dict[str, Any], str | None]:
+    """An agent's raw arguments as (tool arguments with defaults filled in, the `why` note).
+
+    Raises pydantic.ValidationError when a required argument is missing or the wrong type.
+    """
+    args = AGENT_TOOL_ARGS[tool](**raw).model_dump()
+    return args, args.pop(WHY_ARG)
+
 
 class ToolSession:
     """The five tools for one research run: shared price cache, one trace, one run id.
@@ -287,11 +314,18 @@ class ToolSession:
     # --- the one path every call takes -----------------------------------------
 
     def call(
-        self, tool: str, args: dict[str, Any], *, agent: str = DIRECT_AGENT, available: Sequence[str] = TOOL_NAMES
+        self,
+        tool: str,
+        args: dict[str, Any],
+        *,
+        agent: str = DIRECT_AGENT,
+        available: Sequence[str] = TOOL_NAMES,
+        why: str | None = None,
     ) -> ToolResult:
         """Run `tool` with `args`, trace it, and return its result. Never raises for a tool failure.
 
         `available` is the calling agent's tool list; a failure's hint names only those tools.
+        `why` is the agent's reason for the call, recorded in the trace.
         An unknown tool name is a caller bug and raises ValueError.
         """
         if tool not in self._tools:
@@ -320,6 +354,7 @@ class ToolSession:
             output=result.for_llm(),
             duration_ms=(time.perf_counter() - started) * 1000,
             cache_hit=cache_hit,
+            why=why,
         )
         return result
 
@@ -327,7 +362,8 @@ class ToolSession:
         """LangChain tools for an agent that may use only `names`; their calls are traced under `agent`.
 
         Each tool returns (digest text, ToolResult): the model reads the text,
-        and the typed result rides along as the ToolMessage's artifact.
+        and the typed result rides along as the ToolMessage's artifact. The
+        argument schema includes the required `why` (see AGENT_TOOL_ARGS).
         """
         unknown = [name for name in names if name not in TOOL_NAMES]
         if unknown:
@@ -336,15 +372,15 @@ class ToolSession:
 
         def make(name: str) -> StructuredTool:
             def run(**kwargs: Any) -> tuple[str, ToolResult]:
-                args = TOOL_ARGS[name](**kwargs).model_dump()  # fills in defaults, so the trace shows them
-                result = self.call(name, args, agent=agent, available=available)
+                args, why = split_agent_args(name, kwargs)  # fills in defaults, so the trace shows them
+                result = self.call(name, args, agent=agent, available=available, why=why)
                 return result.for_llm(), result
 
             return StructuredTool.from_function(
                 func=run,
                 name=name,
                 description=TOOL_DESCRIPTIONS[name],
-                args_schema=TOOL_ARGS[name],
+                args_schema=AGENT_TOOL_ARGS[name],
                 response_format="content_and_artifact",
             )
 
