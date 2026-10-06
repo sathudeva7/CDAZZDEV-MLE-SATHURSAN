@@ -20,6 +20,9 @@ relevant one before changing either file, and keep it true in the same change.
      `multi_level_index=False` to get flat columns
 
    Two years of data (about 500 rows) covers SMA-200.
+   `task1_financial/data.py`'s `fetch_ohlcv` returns prices in this shape, so
+   use it (or `pipeline.run_market_data`, which runs every step below) rather
+   than calling yfinance directly.
 2. `df = add_indicators(ohlcv)`, then `signal = momentum_signal(df)`.
 3. Read columns through the `COL_*` constants. Task 3 imports these
    functions, so every indicator value in the repo comes from this one module.
