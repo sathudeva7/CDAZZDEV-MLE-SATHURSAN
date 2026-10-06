@@ -55,7 +55,8 @@ files, and every `LLM.call` result is checked for `ok`.
 
 Keys come from `.env` locally or from Colab Secrets, read by `api_key()`.
 Notebooks call `enable_console_logging()` once, so the SDK's
-"Retrying request" lines and the validation warnings show in the cell output.
+"Retrying request" lines, the validation warnings and the data pipeline's
+fetch and fallback lines show in the cell output.
 
 To change a model or provider, edit `common/llm_config.py` only. Free model
 lists change often, so check console.groq.com/docs/models and

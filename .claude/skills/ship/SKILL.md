@@ -1,6 +1,6 @@
 ---
 name: ship
-description: Commit and push work in this repo through the gate — tests, secret scan, citation check, detailed commit. Use when work reaches a milestone or the user says ship, commit, or push.
+description: Ship work in this repo through the gate — tests, secret scan, citation check — then a branch, a detailed commit and a PR merged into main on the user's yes. Use when work reaches a milestone or the user says ship, commit, or push.
 ---
 
 # Ship
@@ -49,18 +49,34 @@ points at the repo the user approved.
 Done when tests pass, the scan prints `clean`, every Claude-written file is
 cited, and the staged set matches the milestone.
 
-## 3. Commit
+## 3. Branch and commit
 
-- Subject: imperative and specific ("Add Wilder-smoothed RSI with reference-value tests").
-- Body: why the change exists, which task and rubric criterion it serves
-  (for example "Task 1A, indicator accuracy"), and what verified it.
-- End with the current Co-Authored-By attribution line for Claude.
+Every commit lands on its own branch, so main only ever changes through a PR.
 
-## 4. Push
+1. Draft the commit message:
+   - Subject: imperative and specific ("Add Wilder-smoothed RSI with reference-value tests").
+   - Body: why the change exists, which task and rubric criterion it serves
+     (for example "Task 1A, indicator accuracy"), and what verified it.
+   - End with the current Co-Authored-By attribution line for Claude.
+2. Show the user the gate results, the staged set and the message, and wait
+   for their yes.
+3. Branch from an up-to-date main: `git switch main && git pull --ff-only`,
+   then `git switch -c <task>-<topic>` in kebab case, for example
+   `task1a-data-pipeline`. Staged changes carry over to the new branch.
+4. Commit.
 
-`git push -u origin main`. This is a solo repo with no branch protection, so
-push straight to `main`. If the push is rejected, report the error to the user
-and leave the history as it is.
+## 4. Push, PR, merge
 
-Done when `git status` reports the branch up to date with `origin/main`.
-Report the commit hash and what shipped.
+1. `git push -u origin <branch>`.
+2. Open the PR with `gh pr create --base main`, the commit subject as the
+   title, and a body written following the `pr` skill. Show the user the PR
+   URL.
+3. Merge only after the user's second yes, given for that PR:
+   `gh pr merge <number> --merge --delete-branch`, then
+   `git switch main && git pull --ff-only`.
+
+If a push, PR or merge is rejected, report the error to the user and leave
+the history as it is.
+
+Done when the PR is merged, its branch is deleted, and local main is up to
+date with `origin/main`. Report the commit hash, the PR URL and what shipped.

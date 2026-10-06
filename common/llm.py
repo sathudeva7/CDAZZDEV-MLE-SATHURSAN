@@ -166,11 +166,17 @@ def make_client(provider: Provider, profile: Profile) -> OpenAI | None:
     )
 
 
+# The repo's packages whose INFO lines and warnings notebooks show.
+CONSOLE_LOGGERS = ("common", "task1_financial")
+
+
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build the Task 1A yfinance data pipeline and summary dictionary', Date: 2026-10-06
 def enable_console_logging() -> None:
-    """Show this module's warnings and the SDK's 'Retrying request' lines in notebook output."""
+    """Show the repo's INFO lines and warnings, and the SDK's 'Retrying request' lines, in notebook output."""
     logging.basicConfig(format="%(asctime)s %(name)s %(levelname)s %(message)s")
     logging.getLogger("openai").setLevel(logging.INFO)
-    logging.getLogger(__name__).setLevel(logging.INFO)
+    for name in CONSOLE_LOGGERS:
+        logging.getLogger(name).setLevel(logging.INFO)
 
 
 class StructuredLLM:

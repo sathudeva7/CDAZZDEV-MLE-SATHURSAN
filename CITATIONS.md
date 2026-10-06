@@ -39,6 +39,17 @@ of the assessment brief. Every AI-assisted block also carries an inline
 | 2026-10-06 | Claude (claude-opus-5-5) | `requirements.txt` | 'Build the ta-indicators skill with its indicator and signal modules and tests' | Adds pandas and numpy |
 | 2026-10-06 | Claude (claude-opus-5-5) | `CLAUDE.md` | 'Build the ta-indicators skill with its indicator and signal modules and tests' | Rule 9 points to the ta-indicators skill |
 | 2026-10-06 | Claude (claude-opus-5-5) | `.claude/skills/ta-indicators/SKILL.md`, `CLAUDE.md` | 'Trim the lines that quote the brief's mark breakdown' | Removed mark figures from the confidential brief |
+| 2026-10-06 | Claude (claude-opus-5-5) | `task1_financial/data.py` | 'Build the Task 1A yfinance data pipeline and summary dictionary' | yfinance fetch for a window computed from today, cleaning, retries with backoff, fundamentals |
+| 2026-10-06 | Claude (claude-opus-5-5) | `task1_financial/summary.py` | 'Build the Task 1A yfinance data pipeline and summary dictionary' | Summary dictionary: price, 52-week range, P/E with fallback, YTD return, indicators, warnings |
+| 2026-10-06 | Claude (claude-opus-5-5) | `task1_financial/pipeline.py` | 'Build the Task 1A yfinance data pipeline and summary dictionary' | One-call Task 1A entry point composing fetch, indicators, signal and summary |
+| 2026-10-06 | Claude (claude-opus-5-5) | `tests/test_data.py` | 'Build the Task 1A yfinance data pipeline and summary dictionary' | Offline tests for the fetch window, cleaning, retries and fallbacks |
+| 2026-10-06 | Claude (claude-opus-5-5) | `tests/test_summary.py` | 'Build the Task 1A yfinance data pipeline and summary dictionary' | Hand-checked tests for every summary field and missing-data path |
+| 2026-10-06 | Claude (claude-opus-5-5) | `tests/test_pipeline.py` | 'Build the Task 1A yfinance data pipeline and summary dictionary' | Offline end-to-end tests, including Yahoo being unreachable |
+| 2026-10-06 | Claude (claude-opus-5-5) | `tests/test_live_yfinance.py` | 'Build the Task 1A yfinance data pipeline and summary dictionary' | Opt-in live check against Yahoo, including the 52-week range against Yahoo's quote |
+| 2026-10-06 | Claude (claude-opus-5-5) | `pytest.ini` | 'Build the Task 1A yfinance data pipeline and summary dictionary' | `live` marker, skipped by default |
+| 2026-10-06 | Claude (claude-opus-5-5) | `requirements.txt` | 'Build the Task 1A yfinance data pipeline and summary dictionary' | Adds yfinance |
+| 2026-10-06 | Claude (claude-opus-5-5) | `common/llm.py` | 'Build the Task 1A yfinance data pipeline and summary dictionary' | `enable_console_logging` also covers task1_financial |
+| 2026-10-06 | Claude (claude-opus-5-5) | `.claude/skills/llm-structured-call/SKILL.md`, `.claude/skills/ta-indicators/SKILL.md` | 'Build the Task 1A yfinance data pipeline and summary dictionary' | Point to the shared logging call and to fetch_ohlcv |
 | 2026-10-06 | Claude (claude-opus-5-5) | `CITATIONS.md` | 'Create the cite-ai-usage skill' | This file's structure |
 
 ## Adapted open-source code
