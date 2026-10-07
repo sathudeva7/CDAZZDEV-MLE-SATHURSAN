@@ -74,3 +74,14 @@ class TraceLog:
             self.path.parent.mkdir(parents=True, exist_ok=True)
             with self.path.open("a", encoding="utf-8") as handle:
                 handle.write(json.dumps(line, default=str) + "\n")
+
+
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Start PR 4: the Task 3 notebook, laid out as settled in the grilling rounds', Date: 2026-10-07
+def read_trace(path: Path | str, run_id: str | None = None) -> list[dict[str, Any]]:
+    """The trace's events in write order, optionally only one run's. A missing file is an empty trace."""
+    path = Path(path)
+    if not path.exists():
+        return []
+    with path.open(encoding="utf-8") as handle:
+        events = [json.loads(line) for line in handle if line.strip()]
+    return [event for event in events if run_id is None or event["run_id"] == run_id]

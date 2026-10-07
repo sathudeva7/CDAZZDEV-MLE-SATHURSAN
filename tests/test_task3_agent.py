@@ -14,7 +14,7 @@ from langchain_core.messages import AIMessage, ToolMessage
 from common.llm_config import PROFILES
 from task3_agentic import agent as agent_module
 from task3_agentic.agent import MAX_TOOL_CALLS, MAX_TURNS, ResearchAgent, chat_models
-from task3_agentic.printer import print_update
+from task3_agentic.printer import print_replan_cycles, print_update, replan_cycles
 from task3_agentic.report import (
     ONE_SD_HIGH,
     ONE_SD_LOW,
@@ -38,6 +38,7 @@ from task3_agentic.tools import (
     TOOL_NAMES,
     WEB_SEARCH,
 )
+from task3_agentic.trace import TRACE_FILE_NAME, read_trace
 from tests.fakes import ScriptedChat, ScriptedLLM, make_session, tool_turn, trace_lines
 
 AGENT_A_TOOLS = (GET_PRICE_DATA, CALCULATE_VOLATILITY, LLM_SENTIMENT)
@@ -323,3 +324,32 @@ def test_printer_shows_text_sent_as_content_blocks():
 
     assert any("says: Volatility was 24%." in line for line in lines)
 
+
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Start PR 4: the Task 3 notebook, laid out as settled in the grilling rounds', Date: 2026-10-07
+def test_replan_cycles_pair_a_turns_results_with_the_next_turns_choice(tmp_path, fake_prices, fake_search):
+    fake_search.replies["text"] = [{"title": "Analyst cuts target", "href": "https://x", "body": "b"}]
+    agent, _, _ = make_agent(
+        tmp_path,
+        [
+            tool_turn(call(GET_NEWS, ticker="AAPL")),
+            tool_turn(call(WEB_SEARCH, why="get_news failed; its hint says web_search", query="AAPL news")),
+            AIMessage("Enough evidence."),
+        ],
+        [report_answer()],
+        failing_tools=[GET_NEWS],
+    )
+    agent.research("AAPL")
+    lines: list[str] = []
+
+    events = read_trace(tmp_path / TRACE_FILE_NAME, run_id=agent.session.run_id)
+    [cycle] = replan_cycles(events, "single")
+    print_replan_cycles(events, "single", write=lines.append)
+
+    assert cycle["turn"] == 2
+    assert [(c["tool"], c["status"]) for c in cycle["observed"]] == [(GET_NEWS, "error")]
+    assert [c["tool"] for c in cycle["chose"]] == [WEB_SEARCH]
+    assert any("why: get_news failed; its hint says web_search" in line for line in lines)
+
+
+def test_read_trace_of_a_missing_file_is_empty(tmp_path):
+    assert read_trace(tmp_path / "none.jsonl") == []
