@@ -178,6 +178,7 @@ of the assessment brief. Every AI-assisted block also carries an inline
 | 2026-10-07 | Claude (claude-opus-5-5) | `task2_genai/README.md` | 'Write 2B.6 and 2C.7 from the submission run's outputs' | Results table and model link |
 | 2026-10-07 | Claude (claude-opus-5-5) | `REFLECTION.md` | 'can u add reflectionmd file now (add Task 2 within 600 words)' | Reflection rewritten for Tasks 1, 2 and 3 (592 words) |
 | 2026-10-07 | Claude (claude-opus-5-5) | `README.md` | 'can u add reflectionmd file now (add Task 2 within 600 words)' | Task 2 marked done with its notebook badge and model link |
+| 2026-10-07 | Claude (claude-opus-5-5) | `task1_financial/README.md` | 'Ship the executed Task 1 notebook with its README, call log and report' | Task 1 README with Colab badge, run results and report link |
 
 ## Adapted open-source code
 
