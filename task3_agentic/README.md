@@ -59,7 +59,7 @@ A Streamlit dashboard (`dashboard/`) reads `agent_trace.jsonl` and shows each ru
 Run it from the repo root:
 
 ```bash
-pip install -r task3_agentic/dashboard/requirements.txt
+pip install -r requirements.txt -r task3_agentic/dashboard/requirements.txt
 streamlit run task3_agentic/dashboard/app.py
 ```
 
