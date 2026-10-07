@@ -5,6 +5,7 @@ User messages carry only the data, as {placeholders}. Bump `version` whenever
 the text changes, so the call log ties each answer to the prompt behind it.
 """
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 1: the five agent tools, their tests and the new-tool skill, as designed in the grilling rounds', Date: 2026-10-07
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'yes fix the hedge (levels from the volatility window closest to the 63-day horizon)', Date: 2026-10-07
 
 from __future__ import annotations
 
@@ -214,7 +215,7 @@ CLARIFICATION_REQUEST = Prompt(
 # B's final report: the shared report rules, plus where the brief's facts came from.
 FINAL_REPORT = Prompt(
     name="final_report",
-    version="1",
+    version="2",
     system=(
         "You are Agent B, a senior equity research writer finishing a short research report. You have a "
         "data brief from the quantitative analyst, your own web and news research, and the analyst's "
@@ -236,6 +237,6 @@ FINAL_REPORT = Prompt(
         "Data brief from the analyst:\n{brief}\n\n"
         "Your research (tool results, in call order):\n{observations}\n\n"
         "Your clarification request and the analyst's answer:\n{clarification}\n\n"
-        "Hedge levels computed from the brief:\n{hedge_levels}"
+        "Hedge levels computed from the brief and the analyst's answer:\n{hedge_levels}"
     ),
 )

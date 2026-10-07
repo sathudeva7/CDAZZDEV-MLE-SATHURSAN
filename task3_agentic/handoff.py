@@ -18,6 +18,7 @@
 Every handoff is a Pydantic model; the agents never pass raw text to each other.
 """
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 3: the 3B two-agent pipeline with the critique loop and the persistent cache, as designed in the grilling rounds', Date: 2026-10-07
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'yes fix the hedge (levels from the volatility window closest to the 63-day horizon)', Date: 2026-10-07
 
 from __future__ import annotations
 
@@ -30,9 +31,9 @@ from task3_agentic.agent import make_observation
 from task3_agentic.prompts import CLARIFICATION_REQUEST, KEY_OBSERVATIONS
 from task3_agentic.report import (
     Snapshots,
+    compute_hedge_levels,
     data_gaps,
     format_observations,
-    hedge_levels,
     latest_ok,
     snapshots,
     tools_with_status_ok,
@@ -107,7 +108,7 @@ def build_brief(
         price=found.price,
         volatility=found.volatility,
         sentiment=found.sentiment,
-        hedge_levels=hedge_levels(found.price, found.volatility),
+        hedge_levels=compute_hedge_levels(observations),
         key_observations=answer.key_observations,
         data_gaps=data_gaps(observations, ANALYST_TOOLS),
         tools_called=tools_with_status_ok(observations),

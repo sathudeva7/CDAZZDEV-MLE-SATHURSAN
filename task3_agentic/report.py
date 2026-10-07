@@ -6,7 +6,9 @@
    days): 200 x 0.30 x sqrt(63/252) = 200 x 0.30 x 0.5 = 30, so about two
    times in three the price ends between 170 and 230. The candidate levels
    are those two bounds plus the SMA-200, the lower Bollinger Band and the
-   52-week low, each with its distance from the price.
+   52-week low, each with its distance from the price. When several
+   volatility estimates are available, the one whose window is closest to the
+   63-day horizon is used (3B: the clarification often asks for exactly that).
 2. Sections. One StructuredLLM call writes the summary, three risks and the
    hedge choice: RESEARCH_REPORT from the 3A agent's observations, or
    FINAL_REPORT from the 3B data brief, Agent B's own observations and the
@@ -30,6 +32,7 @@ result (the ToolResult as JSON, or None when the call never ran).
 """
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 2: the 3A agent loop, report, hedge levels, printer and short-term memory, as designed in the grilling rounds', Date: 2026-10-07
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 3: the 3B two-agent pipeline with the critique loop and the persistent cache, as designed in the grilling rounds', Date: 2026-10-07
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'yes fix the hedge (levels from the volatility window closest to the 63-day horizon)', Date: 2026-10-07
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'ya run fallback to template report (no LLM report when no price data came back)', Date: 2026-10-07
 
 from __future__ import annotations
@@ -119,9 +122,29 @@ def snapshots(observations: Sequence[dict]) -> Snapshots:
 
 
 def compute_hedge_levels(observations: Sequence[dict]) -> HedgeLevels | None:
-    """The expected move and candidate levels from the latest usable price and volatility results."""
-    found = snapshots(observations)
-    return hedge_levels(found.price, found.volatility)
+    """The expected move and candidate levels from the latest price and the horizon-matched volatility result."""
+    return hedge_levels(snapshots(observations).price, horizon_volatility(*volatility_results(observations)))
+
+
+def volatility_results(observations: Sequence[dict]) -> list[VolatilityStats]:
+    """Every usable calculate_volatility result, in call order."""
+    return [
+        VolatilityStats.model_validate(obs["result"]["data"])
+        for obs in observations
+        if obs["tool"] == CALCULATE_VOLATILITY and obs["status"] == "ok" and obs.get("result")
+    ]
+
+
+def horizon_volatility(*estimates: VolatilityStats | None) -> VolatilityStats | None:
+    """The estimate whose window is closest to the hedge horizon; on a tie, the later one.
+
+    A 63-day window measures the same span as the 90-day horizon, so it beats
+    a 30-day one: with 30-day 21% and 63-day 27%, the hedge uses 27%.
+    """
+    found = [estimate for estimate in estimates if estimate is not None]
+    if not found:
+        return None
+    return min(reversed(found), key=lambda estimate: abs(estimate.window - HEDGE_HORIZON_TRADING_DAYS))
 
 
 def hedge_levels(price: PriceSnapshot | None, volatility: VolatilityStats | None) -> HedgeLevels | None:
@@ -174,7 +197,7 @@ def write_report(
     """The checked 3A research report. Never raises for a model failure: the template takes over."""
     warnings: list[str] = []
     found = snapshots(observations)
-    levels = hedge_levels(found.price, found.volatility)
+    levels = compute_hedge_levels(observations)
     variables = {
         "ticker": ticker,
         "today": today.isoformat(),
@@ -202,7 +225,8 @@ def write_final_report(
 ) -> ResearchReport:
     """Agent B's checked report from the brief, its own research and the clarification. Never raises."""
     warnings: list[str] = []
-    levels = brief.hedge_levels
+    # Recomputed rather than copied from the brief: the answer may hold a horizon-matched volatility.
+    levels = hedge_levels(brief.price or response.price, horizon_volatility(brief.volatility, response.volatility))
     variables = {
         "ticker": brief.ticker,
         "today": today.isoformat(),

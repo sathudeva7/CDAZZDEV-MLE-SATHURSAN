@@ -353,3 +353,16 @@ def test_replan_cycles_pair_a_turns_results_with_the_next_turns_choice(tmp_path,
 
 def test_read_trace_of_a_missing_file_is_empty(tmp_path):
     assert read_trace(tmp_path / "none.jsonl") == []
+
+
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'yes fix the hedge (levels from the volatility window closest to the 63-day horizon)', Date: 2026-10-07
+def test_hedge_levels_prefer_the_horizon_matched_volatility_over_the_latest(tmp_path, fake_prices):
+    session = make_session(tmp_path)
+    obs = observations_from(
+        session,
+        (GET_PRICE_DATA, {"ticker": "AAPL"}),
+        (CALCULATE_VOLATILITY, {"ticker": "AAPL", "window": 63}),
+        (CALCULATE_VOLATILITY, {"ticker": "AAPL", "window": 30}),  # latest, but further from the 63-day horizon
+    )
+
+    assert compute_hedge_levels(obs).volatility_source == "calculate_volatility, 63-day"
