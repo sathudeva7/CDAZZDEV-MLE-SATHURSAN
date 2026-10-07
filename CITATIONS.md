@@ -171,6 +171,11 @@ of the assessment brief. Every AI-assisted block also carries an inline
 | 2026-10-07 | Claude (claude-opus-5-5) | `task2_genai/task2_docstring_finetune.ipynb` | 'Build the Task 2 notebook: QLoRA training, merge, and evaluation against the base model' | Task 2 notebook: data report, QLoRA training, merge and publish, evaluation |
 | 2026-10-07 | Claude (claude-opus-5-5) | `.gitignore` | 'Build the Task 2 notebook: QLoRA training, merge, and evaluation against the base model' | Ignore local Task 2 run directory |
 | 2026-10-07 | Claude (claude-opus-5-5) | `task2_genai/README.md` | 'Build the Task 2 notebook: QLoRA training, merge, and evaluation against the base model' | Task 2 README with Colab badge, pipeline and file guide |
+| 2026-10-07 | Claude (claude-opus-5-5) | `task2_genai/task2_docstring_finetune.ipynb` | 'Fix the torchao ImportError in the Task 2 merge step' | Cell removing Colab's torchao 0.10; re-runnable merge cell |
+| 2026-10-07 | Claude (claude-opus-5-5) | `task2_genai/task2_docstring_finetune.ipynb` | 'Fix the CUDA out-of-memory error before the fine-tuned answers' | Cell freeing the leaked base model and reloading the merged model |
+| 2026-10-07 | Claude (claude-opus-5-5) | `task2_genai/task2_docstring_finetune.ipynb` | 'can u please check these outputs and can u label them (second reviewer; labels confirmed by the candidate)' | Second-reviewer reading of the 12 manual labels, each confirmed by the candidate |
+| 2026-10-07 | Claude (claude-opus-5-5) | `task2_genai/task2_docstring_finetune.ipynb` | 'Write 2B.6 and 2C.7 from the submission run's outputs' | Error notes (2B.6) and the two-paragraph qualitative analysis (2C.7) |
+| 2026-10-07 | Claude (claude-opus-5-5) | `task2_genai/README.md` | 'Write 2B.6 and 2C.7 from the submission run's outputs' | Results table and model link |
 
 ## Adapted open-source code
 
