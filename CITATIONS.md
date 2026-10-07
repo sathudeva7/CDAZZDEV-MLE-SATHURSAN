@@ -134,6 +134,10 @@ of the assessment brief. Every AI-assisted block also carries an inline
 | 2026-10-07 | Claude (claude-opus-5-5) | `tests/test_task3_agent.py` | 'Add a stronger paid OpenAI model (gpt-6.1-sol) for testing, in a separate file so it can be deleted before submission' | Test that the printer shows text sent as content blocks |
 | 2026-10-07 | Claude (claude-opus-5-5) | `.env.example` | 'Add a stronger paid OpenAI model (gpt-6.1-sol) for testing, in a separate file so it can be deleted before submission' | OPENAI_API_KEY for the testing-only profile |
 | 2026-10-07 | Claude (claude-opus-5-5) | `CLAUDE.md` | 'Add a stronger paid OpenAI model (gpt-6.1-sol) for testing, in a separate file so it can be deleted before submission' | Rule 5 marks openai_dev as testing-only, to delete before submission |
+| 2026-10-07 | Claude (claude-opus-5-5) | `task3_agentic/report.py` | 'ya run fallback to template report (no LLM report when no price data came back)' | Template report, without asking the LLM, when no price data came back |
+| 2026-10-07 | Claude (claude-opus-5-5) | `task3_agentic/schemas.py` | 'ya run fallback to template report (no LLM report when no price data came back)' | Template banner in the Markdown report says why |
+| 2026-10-07 | Claude (claude-opus-5-5) | `tests/test_task3_agent.py` | 'ya run fallback to template report (no LLM report when no price data came back)' | Test for the no-price-data template; three agent scenarios now fetch prices |
+| 2026-10-07 | Claude (claude-opus-5-5) | `tests/test_task3_pipeline.py` | 'ya run fallback to template report (no LLM report when no price data came back)' | Test that 3B's final report without price data is a template |
 
 ## Adapted open-source code
 

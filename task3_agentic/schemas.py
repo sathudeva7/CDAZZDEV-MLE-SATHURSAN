@@ -11,6 +11,7 @@ ResearchReport is the record built from ReportAnswer: code checks the
 evidence and fills in every hedge level, so the LLM never supplies a number.
 """
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 1: the five agent tools, their tests and the new-tool skill, as designed in the grilling rounds', Date: 2026-10-07
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'ya run fallback to template report (no LLM report when no price data came back)', Date: 2026-10-07
 
 from __future__ import annotations
 
@@ -362,8 +363,8 @@ class ResearchReport(BaseModel):
     def to_markdown(self) -> str:
         """The report as Markdown, for display in the notebook."""
         lines = [f"# {self.ticker} research report ({self.as_of})", ""]
-        if self.generated_by == "template":
-            lines += ["> Written from a template: the report model was unavailable.", ""]
+        if self.generated_by == "template":  # the first warning says why: no model answered, or no price data came back
+            lines += [f"> Not written by the LLM: {self.warnings[0] if self.warnings else 'the report model was unavailable, so it was written from a template'}.", ""]
         lines += ["## Financial Health Summary", "", self.financial_health_summary, "", "## Top Three Risks", ""]
         for number, risk in enumerate(self.top_risks, 1):
             lines.append(f"{number}. **{risk.title}**: {risk.explanation}")

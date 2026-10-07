@@ -129,7 +129,7 @@ def test_report_falls_back_to_a_template_with_three_risks(tmp_path, fake_prices)
         assert report.generated_by == "template"
         assert len(report.top_risks) == 3
         assert report.hedge.strategy == "protective_put" and report.hedge.legs[0].level is not None
-        assert "Written from a template" in report.to_markdown()
+        assert "written from a template" in report.to_markdown()
 
 
 def test_template_without_prices_suggests_trimming(tmp_path):
@@ -137,6 +137,21 @@ def test_template_without_prices_suggests_trimming(tmp_path):
 
     assert report.hedge.strategy == "trim_and_stop"
     assert report.hedge.levels is None
+
+
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'ya run fallback to template report (no LLM report when no price data came back)', Date: 2026-10-07
+def test_no_price_data_means_a_template_report_without_asking_the_llm(tmp_path, fake_search):
+    fake_search.replies["text"] = [{"title": "FiscalNote (NOTE) stock price", "href": "https://x", "body": "b"}]
+    session = make_session(tmp_path)
+    obs = observations_from(session, (WEB_SEARCH, {"query": "ZZZ stock"}))
+    llm = ScriptedLLM([report_answer(evidence_tool=WEB_SEARCH)])
+
+    report = write_report("ZZZ", session.today, obs, llm)
+
+    assert report.generated_by == "template"
+    assert llm.replies  # the scripted answer was never asked for
+    assert report.warnings[0].startswith("no price data came back")
+    assert "Not written by the LLM: no price data came back, so the report was written from a template" in report.to_markdown()
 
 
 def test_data_gaps_name_uncalled_and_failed_tools():
@@ -155,7 +170,7 @@ def test_agent_sees_a_failure_and_its_hint_then_switches_tool(tmp_path, fake_pri
     agent, chat, _ = make_agent(
         tmp_path,
         [
-            tool_turn(call(GET_NEWS, ticker="AAPL")),
+            tool_turn(call(GET_PRICE_DATA, ticker="AAPL"), call(GET_NEWS, ticker="AAPL")),
             tool_turn(call(WEB_SEARCH, why="get_news failed; its hint says web_search", query="AAPL news")),
             AIMessage("Enough evidence."),
         ],
@@ -166,9 +181,9 @@ def test_agent_sees_a_failure_and_its_hint_then_switches_tool(tmp_path, fake_pri
     run = agent.research("AAPL")
 
     second_turn_saw = [m for m in chat.calls[1]["messages"] if isinstance(m, ToolMessage)]
-    assert '"status": "error"' in second_turn_saw[0].content and "web_search" in second_turn_saw[0].content
-    assert [line["tool"] for line in trace_lines(tmp_path) if line["event"] == "tool_call"] == [GET_NEWS, WEB_SEARCH]
-    assert run.observations[1]["why"] == "get_news failed; its hint says web_search"
+    assert '"status": "error"' in second_turn_saw[1].content and "web_search" in second_turn_saw[1].content
+    assert [line["tool"] for line in trace_lines(tmp_path) if line["event"] == "tool_call"] == [GET_PRICE_DATA, GET_NEWS, WEB_SEARCH]
+    assert run.observations[2]["why"] == "get_news failed; its hint says web_search"
     assert run.report.generated_by == "llm"
     assert any("get_news returned no usable result" in gap for gap in run.report.data_gaps)
 
@@ -230,7 +245,7 @@ def test_every_model_failing_still_ends_with_a_report(tmp_path, fake_prices):
 def test_follow_up_is_answered_from_memory_without_new_tool_calls(tmp_path, fake_prices):
     agent, chat, llm = make_agent(
         tmp_path,
-        [tool_turn(call(CALCULATE_VOLATILITY, ticker="AAPL", window=30)), AIMessage("Done."), AIMessage("It was 24.7%.")],
+        [tool_turn(call(GET_PRICE_DATA, ticker="AAPL"), call(CALCULATE_VOLATILITY, ticker="AAPL", window=30)), AIMessage("Done."), AIMessage("It was 24.7%.")],
         [report_answer()],
     )
     first = agent.research("AAPL")
@@ -264,7 +279,7 @@ def test_follow_up_may_still_fetch_new_data(tmp_path, fake_prices):
 
 def test_printer_shows_why_hint_and_report(tmp_path, fake_prices, fake_search):
     lines: list[str] = []
-    agent, _, _ = make_agent(tmp_path, [tool_turn(call(GET_NEWS, why="start with news", ticker="AAPL")), AIMessage("ok")], [report_answer()], failing_tools=[GET_NEWS])
+    agent, _, _ = make_agent(tmp_path, [tool_turn(call(GET_PRICE_DATA, ticker="AAPL"), call(GET_NEWS, why="start with news", ticker="AAPL")), AIMessage("ok")], [report_answer()], failing_tools=[GET_NEWS])
 
     agent.research("AAPL", on_update=lambda name, step: print_update(name, step, write=lines.append))
 
