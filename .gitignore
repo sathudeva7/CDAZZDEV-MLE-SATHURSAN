@@ -18,3 +18,6 @@ __pycache__/
 .ipynb_checkpoints/
 wandb/
 .DS_Store
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build the Task 2 notebook: QLoRA training, merge, and evaluation against the base model', Date: 2026-10-07
+# Task 2 checkpoints and merged model when the notebook runs locally.
+.t2_run/

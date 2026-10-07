@@ -1,0 +1,15 @@
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build the Task 2 notebook: QLoRA training, merge, and evaluation against the base model', Date: 2026-10-07
+# The Task 2 notebook's packages on a Colab GPU runtime (torch and datasets come preinstalled).
+# transformers is held below 5 so the TrainingArguments and from_pretrained names used here stay valid.
+transformers>=4.56,<5
+peft>=0.17
+bitsandbytes>=0.46
+accelerate>=1.10
+rouge-score>=0.1.2
+bert-score>=0.3.13
+# Imported by common/ (Prompt, secret lookup), which the notebook shares with the other tasks.
+openai>=3.24
+pydantic>=2.7
+python-dotenv>=1.0
+pandas>=2.2
+matplotlib>=3.8

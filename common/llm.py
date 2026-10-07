@@ -169,8 +169,9 @@ def make_client(provider: Provider, profile: Profile) -> OpenAI | None:
 
 
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Start PR 4: the Task 3 notebook, laid out as settled in the grilling rounds', Date: 2026-10-07
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build the Task 2 data script as designed in the grilling rounds', Date: 2026-10-07
 # The repo's packages whose INFO lines and warnings notebooks show.
-CONSOLE_LOGGERS = ("common", "task1_financial", "task3_agentic")
+CONSOLE_LOGGERS = ("common", "task1_financial", "task2_genai", "task3_agentic")
 
 
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build the Task 1A yfinance data pipeline and summary dictionary', Date: 2026-10-06

@@ -2,6 +2,7 @@
 <!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 1B (Jev headline sentiment, LLM reasons and Recommendation) as designed in the grilling rounds', Date: 2026-10-06 -->
 <!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Write the root README and a Task 1 REFLECTION as decided in the grilling round', Date: 2026-10-07 -->
 <!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Add a stronger paid OpenAI model (gpt-6.1-sol) for testing, in a separate file so it can be deleted before submission', Date: 2026-10-07 -->
+<!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build the Task 2 data script as designed in the grilling rounds', Date: 2026-10-07 -->
 # CDAZZDEV Senior MLE assessment
 
 This repo is a take-home assessment submission, published as the public GitHub
@@ -11,8 +12,8 @@ has to defend every part in an interview. Write for that reader: readable,
 commented code where every choice can be explained.
 
 The brief is `tasks.md`. Before working on a task, read its section there,
-because the rubric tables list exactly what earns marks. Current focus: Task 1
-(Financial AI), then Task 3 (Agentic).
+because the rubric tables list exactly what earns marks. Tasks 1 and 3 are
+built; current focus: Task 2 (Generative AI), due 2026-10-08.
 
 ## Layout
 
@@ -46,12 +47,17 @@ Breaking a rule marked (DQ) disqualifies the whole submission.
    duckduckgo-search and Colab's free GPU. The `paid_dev` profile is for local
    testing only. <!-- TESTING-ONLY(openai) --> So is `openai_dev` (OpenAI's
    gpt-6.1-sol, `common/llm_openai.py`), added 2026-10-07 to judge Task 3's
-   output; delete it and every `TESTING-ONLY(openai)` line before submission.
+   output; delete it and every `TESTING-ONLY(openai)` line before submission,
+   except the Sol provider path Task 2's teacher uses (see below): retag those
+   lines for Task 2 instead of deleting them.
    Ask before adding anything else that needs a paid plan.
    One deliberate exception (2026-10-06), the candidate's own choice: Jev,
    TypeSafe's paid decision model, labels headline sentiment in every profile
-   when its key is set (`docs/adr/0001`). Public docs call it "a deliberate
-   exception to the free-tier setup", never "approved".
+   when its key is set (`docs/adr/0001`). A second one (2026-10-07), also the
+   candidate's choice: GPT-6.1 Sol is Task 2's teacher, run once locally by
+   `task2_genai/generate_data.py`, with the data committed (`docs/adr/0002`).
+   Public docs call each "a deliberate exception to the free-tier setup",
+   never "approved".
 6. **LLM calls go through `common/llm.py`.** Follow the `llm-structured-call`
    skill: `Prompt` constants with separate system and user messages, a
    Pydantic schema, and a fallback value, so the caller always gets a result.
