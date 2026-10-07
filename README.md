@@ -1,5 +1,6 @@
 <!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Write the root README and a Task 1 REFLECTION as decided in the grilling round', Date: 2026-10-07 -->
 <!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'can u add reflectionmd file now (add Task 2 within 600 words)', Date: 2026-10-07 -->
+<!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Ship the executed Task 3 notebook with its trace, call log, cache and README', Date: 2026-10-07 -->
 # CDAZZDEV Senior MLE assessment
 
 A first-pass equity research assistant built on free market data and LLMs
@@ -10,7 +11,7 @@ A first-pass equity research assistant built on free market data and LLMs
 |---|---|---|---|
 | 1. Financial AI: data pipeline, LLM sentiment and signal reasoning, bonus brief | Done | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sathudeva7/CDAZZDEV-MLE-SATHURSAN/blob/main/task1_financial/task1_equity_research.ipynb) | [`task1_financial/`](task1_financial/) |
 | 2. Generative AI: QLoRA fine-tune of Qwen2.5-Coder-3B to write docstrings ([model](https://huggingface.co/sathudeva7/qwen2.5-coder-3b-docstrings)) | Done | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sathudeva7/CDAZZDEV-MLE-SATHURSAN/blob/main/task2_genai/task2_docstring_finetune.ipynb) | [`task2_genai/`](task2_genai/) |
-| 3. Agentic AI: tool-using and multi-agent research | In progress | | `task3_agentic/` |
+| 3. Agentic AI: tool-using and multi-agent research, memory, trace | Done | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sathudeva7/CDAZZDEV-MLE-SATHURSAN/blob/main/task3_agentic/task3_agentic_research.ipynb) | [`task3_agentic/`](task3_agentic/) |
 
 Also in the root: [`REFLECTION.md`](REFLECTION.md) (decisions, improvements and
 limitations) and [`CITATIONS.md`](CITATIONS.md) (every AI-assisted file and
@@ -85,7 +86,10 @@ everything runs on free tiers. The decision is recorded in
 common/              shared by every task: structured LLM helper, provider profiles, Jev client
 task1_financial/     Task 1 notebook and modules: data, indicators, news, summary,
                      sentiment, recommendation, report; logs/ and reports/ from the submitted run
-task3_agentic/       Task 3 (in progress)
+task2_genai/         Task 2 notebook and modules: teacher data pipeline, ast checker, QLoRA, metrics;
+                     data/, logs/ and evaluation/ from the submitted run
+task3_agentic/       Task 3 notebook and modules: tools, agent loop, 3B pipeline, cache, trace,
+                     dashboard/; logs/agent_trace.jsonl and cache/ from the submitted run
 tests/               offline pytest suite, plus opt-in live tests
 docs/adr/            architecture decision records
 scripts/             secret scan and citation check

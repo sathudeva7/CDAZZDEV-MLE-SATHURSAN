@@ -189,6 +189,8 @@ of the assessment brief. Every AI-assisted block also carries an inline
 | 2026-10-07 | Claude (claude-opus-5-5) | `docs/adr/0002-paid-teacher-for-task2.md` | 'yes do both (OpenAI testing cleanup before the Task 3 submission run)' | Consequence updated: the teacher's provider is not a profile |
 | 2026-10-07 | Claude (claude-opus-5-5) | `CLAUDE.md` | 'yes do both (OpenAI testing cleanup before the Task 3 submission run)' | Rule 5: testing profile removed; Task 2 teacher exception stays |
 | 2026-10-07 | Claude (claude-opus-5-5) | `.env.example` | 'yes do both (OpenAI testing cleanup before the Task 3 submission run)' | OPENAI_API_KEY documented as Task 2 data regeneration only |
+| 2026-10-07 | Claude (claude-opus-5-5) | `task3_agentic/README.md` | 'Ship the executed Task 3 notebook with its trace, call log, cache and README' | Task 3 README with Colab badge, run results and file guide |
+| 2026-10-07 | Claude (claude-opus-5-5) | `README.md` | 'Ship the executed Task 3 notebook with its trace, call log, cache and README' | Task 3 marked done; repository map lists Tasks 2 and 3 |
 
 ## Adapted open-source code
 
