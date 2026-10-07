@@ -14,7 +14,7 @@ from langchain_core.messages import AIMessage, ToolMessage
 from common.llm_config import PROFILES
 from task3_agentic import agent as agent_module
 from task3_agentic.agent import MAX_TOOL_CALLS, MAX_TURNS, ResearchAgent, chat_models
-from task3_agentic.printer import print_update
+from task3_agentic.printer import print_replan_cycles, print_update, replan_cycles
 from task3_agentic.report import (
     ONE_SD_HIGH,
     ONE_SD_LOW,
@@ -38,6 +38,7 @@ from task3_agentic.tools import (
     TOOL_NAMES,
     WEB_SEARCH,
 )
+from task3_agentic.trace import TRACE_FILE_NAME, read_trace
 from tests.fakes import ScriptedChat, ScriptedLLM, make_session, tool_turn, trace_lines
 
 AGENT_A_TOOLS = (GET_PRICE_DATA, CALCULATE_VOLATILITY, LLM_SENTIMENT)
@@ -129,7 +130,7 @@ def test_report_falls_back_to_a_template_with_three_risks(tmp_path, fake_prices)
         assert report.generated_by == "template"
         assert len(report.top_risks) == 3
         assert report.hedge.strategy == "protective_put" and report.hedge.legs[0].level is not None
-        assert "Written from a template" in report.to_markdown()
+        assert "written from a template" in report.to_markdown()
 
 
 def test_template_without_prices_suggests_trimming(tmp_path):
@@ -137,6 +138,21 @@ def test_template_without_prices_suggests_trimming(tmp_path):
 
     assert report.hedge.strategy == "trim_and_stop"
     assert report.hedge.levels is None
+
+
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'ya run fallback to template report (no LLM report when no price data came back)', Date: 2026-10-07
+def test_no_price_data_means_a_template_report_without_asking_the_llm(tmp_path, fake_search):
+    fake_search.replies["text"] = [{"title": "FiscalNote (NOTE) stock price", "href": "https://x", "body": "b"}]
+    session = make_session(tmp_path)
+    obs = observations_from(session, (WEB_SEARCH, {"query": "ZZZ stock"}))
+    llm = ScriptedLLM([report_answer(evidence_tool=WEB_SEARCH)])
+
+    report = write_report("ZZZ", session.today, obs, llm)
+
+    assert report.generated_by == "template"
+    assert llm.replies  # the scripted answer was never asked for
+    assert report.warnings[0].startswith("no price data came back")
+    assert "Not written by the LLM: no price data came back, so the report was written from a template" in report.to_markdown()
 
 
 def test_data_gaps_name_uncalled_and_failed_tools():
@@ -155,7 +171,7 @@ def test_agent_sees_a_failure_and_its_hint_then_switches_tool(tmp_path, fake_pri
     agent, chat, _ = make_agent(
         tmp_path,
         [
-            tool_turn(call(GET_NEWS, ticker="AAPL")),
+            tool_turn(call(GET_PRICE_DATA, ticker="AAPL"), call(GET_NEWS, ticker="AAPL")),
             tool_turn(call(WEB_SEARCH, why="get_news failed; its hint says web_search", query="AAPL news")),
             AIMessage("Enough evidence."),
         ],
@@ -166,9 +182,9 @@ def test_agent_sees_a_failure_and_its_hint_then_switches_tool(tmp_path, fake_pri
     run = agent.research("AAPL")
 
     second_turn_saw = [m for m in chat.calls[1]["messages"] if isinstance(m, ToolMessage)]
-    assert '"status": "error"' in second_turn_saw[0].content and "web_search" in second_turn_saw[0].content
-    assert [line["tool"] for line in trace_lines(tmp_path) if line["event"] == "tool_call"] == [GET_NEWS, WEB_SEARCH]
-    assert run.observations[1]["why"] == "get_news failed; its hint says web_search"
+    assert '"status": "error"' in second_turn_saw[1].content and "web_search" in second_turn_saw[1].content
+    assert [line["tool"] for line in trace_lines(tmp_path) if line["event"] == "tool_call"] == [GET_PRICE_DATA, GET_NEWS, WEB_SEARCH]
+    assert run.observations[2]["why"] == "get_news failed; its hint says web_search"
     assert run.report.generated_by == "llm"
     assert any("get_news returned no usable result" in gap for gap in run.report.data_gaps)
 
@@ -230,7 +246,7 @@ def test_every_model_failing_still_ends_with_a_report(tmp_path, fake_prices):
 def test_follow_up_is_answered_from_memory_without_new_tool_calls(tmp_path, fake_prices):
     agent, chat, llm = make_agent(
         tmp_path,
-        [tool_turn(call(CALCULATE_VOLATILITY, ticker="AAPL", window=30)), AIMessage("Done."), AIMessage("It was 24.7%.")],
+        [tool_turn(call(GET_PRICE_DATA, ticker="AAPL"), call(CALCULATE_VOLATILITY, ticker="AAPL", window=30)), AIMessage("Done."), AIMessage("It was 24.7%.")],
         [report_answer()],
     )
     first = agent.research("AAPL")
@@ -264,7 +280,7 @@ def test_follow_up_may_still_fetch_new_data(tmp_path, fake_prices):
 
 def test_printer_shows_why_hint_and_report(tmp_path, fake_prices, fake_search):
     lines: list[str] = []
-    agent, _, _ = make_agent(tmp_path, [tool_turn(call(GET_NEWS, why="start with news", ticker="AAPL")), AIMessage("ok")], [report_answer()], failing_tools=[GET_NEWS])
+    agent, _, _ = make_agent(tmp_path, [tool_turn(call(GET_PRICE_DATA, ticker="AAPL"), call(GET_NEWS, why="start with news", ticker="AAPL")), AIMessage("ok")], [report_answer()], failing_tools=[GET_NEWS])
 
     agent.research("AAPL", on_update=lambda name, step: print_update(name, step, write=lines.append))
 
@@ -296,3 +312,44 @@ def test_every_tool_can_be_bound(tmp_path):
     session = make_session(tmp_path)
 
     assert [tool.name for tool in session.langchain_tools(TOOL_NAMES, agent="single")] == list(TOOL_NAMES)
+
+
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Add a stronger paid OpenAI model (gpt-6.1-sol) for testing, in a separate file so it can be deleted before submission', Date: 2026-10-07
+def test_printer_shows_text_sent_as_content_blocks():
+    # OpenAI's Responses API sends a reply as a list of content blocks, not a string.
+    reply = AIMessage(content=[{"type": "reasoning", "summary": []}, {"type": "text", "text": "Volatility was 24%."}])
+    lines: list[str] = []
+
+    print_update("single", {"agent": {"messages": [reply], "turns": 1}}, write=lines.append)
+
+    assert any("says: Volatility was 24%." in line for line in lines)
+
+
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Start PR 4: the Task 3 notebook, laid out as settled in the grilling rounds', Date: 2026-10-07
+def test_replan_cycles_pair_a_turns_results_with_the_next_turns_choice(tmp_path, fake_prices, fake_search):
+    fake_search.replies["text"] = [{"title": "Analyst cuts target", "href": "https://x", "body": "b"}]
+    agent, _, _ = make_agent(
+        tmp_path,
+        [
+            tool_turn(call(GET_NEWS, ticker="AAPL")),
+            tool_turn(call(WEB_SEARCH, why="get_news failed; its hint says web_search", query="AAPL news")),
+            AIMessage("Enough evidence."),
+        ],
+        [report_answer()],
+        failing_tools=[GET_NEWS],
+    )
+    agent.research("AAPL")
+    lines: list[str] = []
+
+    events = read_trace(tmp_path / TRACE_FILE_NAME, run_id=agent.session.run_id)
+    [cycle] = replan_cycles(events, "single")
+    print_replan_cycles(events, "single", write=lines.append)
+
+    assert cycle["turn"] == 2
+    assert [(c["tool"], c["status"]) for c in cycle["observed"]] == [(GET_NEWS, "error")]
+    assert [c["tool"] for c in cycle["chose"]] == [WEB_SEARCH]
+    assert any("why: get_news failed; its hint says web_search" in line for line in lines)
+
+
+def test_read_trace_of_a_missing_file_is_empty(tmp_path):
+    assert read_trace(tmp_path / "none.jsonl") == []

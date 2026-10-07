@@ -25,6 +25,7 @@ tools are bound in build_agent_graph, so restriction does not depend on
 prompts. Every node reports to `on_update(agent, step)` for the notebook trace.
 """
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 3: the 3B two-agent pipeline with the critique loop and the persistent cache, as designed in the grilling rounds', Date: 2026-10-07
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Add a stronger paid OpenAI model (gpt-6.1-sol) for testing, in a separate file so it can be deleted before submission', Date: 2026-10-07
 
 from __future__ import annotations
 
@@ -45,7 +46,13 @@ from langgraph.graph import END, START, StateGraph
 
 from common.llm import StructuredLLM
 from common.llm_config import active_profile
-from task3_agentic.agent import AgentState, build_agent_graph, chat_models, invoke_agent
+from task3_agentic.agent import (
+    AgentState,
+    build_agent_graph,
+    chat_models,
+    invoke_agent,
+    message_text,
+)
 from task3_agentic.cache import (
     CACHE_DIR,
     SCHEMA_VERSION,
@@ -281,7 +288,7 @@ class ResearchPipeline:
 
     def _finish_response(self, state: AgentState) -> dict:
         request = ClarificationRequest.model_validate(state["context"]["request"])
-        answer = next((m.content for m in reversed(state["messages"]) if m.type == "ai" and isinstance(m.content, str) and m.content), "")
+        answer = next((text for m in reversed(state["messages"]) if m.type == "ai" and (text := message_text(m))), "")
         response, _, warnings = build_response(request, state["ticker"], state["observations"], answer, self.session, ANALYST)
         return {"result": response.model_dump(mode="json"), "warnings": warnings}
 

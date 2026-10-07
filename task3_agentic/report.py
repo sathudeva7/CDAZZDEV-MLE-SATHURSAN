@@ -16,7 +16,9 @@
    anything else is dropped with a warning. An unknown level name leaves the
    leg without a level, with a warning.
 4. Fallback. When no LLM answers, a template report built from the same
-   numbers takes its place, labelled generated_by="template".
+   numbers takes its place, labelled generated_by="template". The template
+   is also used, without asking the LLM, when no price data came back at all
+   (a bad ticker): with nothing to ground them, the LLM's risks would be invented.
 
 Both reports work from snapshots (PriceSnapshot, VolatilityStats,
 SentimentSnapshot): 3A takes them from its observations, 3B from the data
@@ -28,6 +30,7 @@ result (the ToolResult as JSON, or None when the call never ran).
 """
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 2: the 3A agent loop, report, hedge levels, printer and short-term memory, as designed in the grilling rounds', Date: 2026-10-07
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 3: the 3B two-agent pipeline with the critique loop and the persistent cache, as designed in the grilling rounds', Date: 2026-10-07
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'ya run fallback to template report (no LLM report when no price data came back)', Date: 2026-10-07
 
 from __future__ import annotations
 
@@ -76,6 +79,7 @@ PERCENT = 100.0
 LEVEL_DECIMALS = 2
 REPORT_EFFORT = "medium"  # reasons across price, volatility, sentiment and commentary at once
 NO_HEDGE_LEVELS = "unavailable: no usable price data, so no levels could be computed"
+NO_PRICE_DATA = "no price data came back, so the report was written from a template: the LLM would have nothing to ground its risks in"
 CLARIFICATION_NOT_USED = "The clarification could not be weighed: the report model was unavailable, so this report was written from a template."
 
 # Candidate level names and what each one means, in the order the prompt lists them.
@@ -177,7 +181,8 @@ def write_report(
         "observations": format_observations(observations),
         "hedge_levels": levels.model_dump_json() if levels else NO_HEDGE_LEVELS,
     }
-    answer, generated_by = _ask(llm, RESEARCH_REPORT, variables, ReportAnswer, template_answer(found, levels), warnings)
+    fallback = template_answer(found, levels)
+    answer, generated_by = _ask(llm, RESEARCH_REPORT, variables, ReportAnswer, fallback, warnings, has_prices=found.price is not None)
     return _checked_report(
         answer, ticker=ticker, today=today, levels=levels, ok_tools=tools_with_status_ok(observations),
         gaps=data_gaps(observations, tools_available), generated_by=generated_by, warnings=warnings,
@@ -208,7 +213,8 @@ def write_final_report(
     }
     found = Snapshots(brief.price, brief.volatility, brief.sentiment)
     fallback = FinalReportAnswer(**template_answer(found, levels).model_dump(), clarification_used=CLARIFICATION_NOT_USED)
-    answer, generated_by = _ask(llm, FINAL_REPORT, variables, FinalReportAnswer, fallback, warnings)
+    has_prices = brief.price is not None or response.price is not None
+    answer, generated_by = _ask(llm, FINAL_REPORT, variables, FinalReportAnswer, fallback, warnings, has_prices=has_prices)
 
     # Evidence may cite any tool either agent ran successfully (A's via the brief and its answer).
     ok_tools = _unique([*brief.tools_called, *tools_with_status_ok(writer_observations), *response.tools_called])
@@ -312,8 +318,11 @@ def template_answer(found: Snapshots, levels: HedgeLevels | None) -> ReportAnswe
     )
 
 
-def _ask(llm, prompt, variables, schema, fallback, warnings) -> tuple:
-    """The LLM's answer and 'llm', or the template `fallback` and 'template' when no model answers."""
+def _ask(llm, prompt, variables, schema, fallback, warnings, *, has_prices: bool) -> tuple:
+    """The LLM's answer and 'llm', or the template `fallback` and 'template' when no model answers or no prices came back."""
+    if not has_prices:
+        _warn(warnings, NO_PRICE_DATA)
+        return fallback, "template"
     if llm is None:
         _warn(warnings, "no LLM is available for the report, so it was written from a template")
         return fallback, "template"

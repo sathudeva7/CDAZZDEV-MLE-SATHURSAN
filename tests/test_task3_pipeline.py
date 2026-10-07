@@ -23,8 +23,10 @@ from task3_agentic.handoff import (
 )
 from task3_agentic.pipeline import WRITER_TOOLS, ResearchPipeline
 from task3_agentic.printer import print_update
+from task3_agentic.report import write_final_report
 from task3_agentic.schemas import (
     ClarificationRequest,
+    ClarificationResponse,
     FinalReportAnswer,
     HeadlineLabel,
     HeadlineLabels,
@@ -265,3 +267,15 @@ def test_printer_shows_each_handoff(tmp_path, feeds):
         "[pipeline] saved the research brief to",
     ):
         assert expected in text
+
+
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'ya run fallback to template report (no LLM report when no price data came back)', Date: 2026-10-07
+def test_final_report_without_any_price_data_is_a_template(tmp_path):
+    brief, _ = build_brief("ZZZ", TODAY, [], 0, None)
+    response = ClarificationResponse(request=CLARIFY_VOLATILITY, answer="No data.", tools_called=[], fulfilled_by="agent")
+    llm = ScriptedLLM([final_answer()])
+
+    report = write_final_report(brief, [], WRITER_TOOLS, response, llm, TODAY)
+
+    assert report.generated_by == "template" and llm.replies  # the LLM was never asked
+    assert report.warnings[0].startswith("no price data came back")

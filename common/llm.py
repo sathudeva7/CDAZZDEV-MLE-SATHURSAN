@@ -15,6 +15,7 @@ Each call appends one JSON line to <log_dir>/<profile log file>, so a reviewer
 can see validation failures being caught without re-running anything.
 """
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build the llm-structured-call skill with its shared helper and tests', Date: 2026-10-06
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Add a stronger paid OpenAI model (gpt-6.1-sol) for testing, in a separate file so it can be deleted before submission', Date: 2026-10-07
 
 from __future__ import annotations
 
@@ -32,6 +33,7 @@ from openai import OpenAI
 from pydantic import BaseModel, ValidationError
 
 from common.llm_config import Profile, Provider, active_profile, api_key
+from common.llm_openai import openai_request  # TESTING-ONLY(openai)
 
 logger = logging.getLogger(__name__)
 
@@ -166,8 +168,9 @@ def make_client(provider: Provider, profile: Profile) -> OpenAI | None:
     )
 
 
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Start PR 4: the Task 3 notebook, laid out as settled in the grilling rounds', Date: 2026-10-07
 # The repo's packages whose INFO lines and warnings notebooks show.
-CONSOLE_LOGGERS = ("common", "task1_financial")
+CONSOLE_LOGGERS = ("common", "task1_financial", "task3_agentic")
 
 
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build the Task 1A yfinance data pipeline and summary dictionary', Date: 2026-10-06
@@ -288,13 +291,16 @@ class StructuredLLM:
         for attempt in range(1, MAX_ATTEMPTS_PER_PROVIDER + 1):
             stats.attempts += 1
             try:
-                raw_response = client.chat.completions.with_raw_response.create(
-                    model=provider.model,
-                    messages=conversation,
-                    temperature=TEMPERATURE,
-                    response_format=response_format,
+                request = {
+                    "model": provider.model,
+                    "messages": conversation,
+                    "temperature": TEMPERATURE,
+                    "response_format": response_format,
                     **_reasoning_options(provider, reasoning_effort),
-                )
+                }
+                if provider.reasoning_style == "openai":  # TESTING-ONLY(openai)
+                    request = openai_request(request, reasoning_effort)  # TESTING-ONLY(openai)
+                raw_response = client.chat.completions.with_raw_response.create(**request)
             except openai.BadRequestError as exc:
                 if exc.code != JSON_VALIDATE_FAILED:
                     raise _ProviderFailed(_describe_api_error(exc)) from exc

@@ -20,15 +20,18 @@ full (the DataBrief, the ClarificationRequest, the ClarificationResponse),
 and every cache lookup and save.
 """
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 2: the 3A agent loop, report, hedge levels, printer and short-term memory, as designed in the grilling rounds', Date: 2026-10-07
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Add a stronger paid OpenAI model (gpt-6.1-sol) for testing, in a separate file so it can be deleted before submission', Date: 2026-10-07
 
 from __future__ import annotations
 
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
+from itertools import pairwise
 from typing import Any
 
 from langchain_core.messages import AIMessage
 
+from task3_agentic.agent import message_text
 from task3_agentic.tools import WHY_ARG
 
 DIGEST_PREVIEW_CHARS = 160
@@ -63,7 +66,7 @@ def _print_turn(agent: str, update: dict, write: Callable[[str], None]) -> None:
             write(f"  -> {call['name']}({shown})")
             if call["args"].get(WHY_ARG):
                 write(f"     why: {call['args'][WHY_ARG]}")
-        text = message.content if isinstance(message.content, str) else ""
+        text = message_text(message)  # a string, or content blocks on OpenAI's Responses API
         if text and not message.tool_calls:
             write(f"  says: {text[:ANSWER_PREVIEW_CHARS]}")
     for warning in update.get("warnings", []):
@@ -176,3 +179,43 @@ PIPELINE_PRINTERS: dict[str, Callable[[dict, Callable[[str], None]], None]] = {
     "critique_request": _print_request,
     "clarification": _print_clarification,
 }
+
+
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Start PR 4: the Task 3 notebook, laid out as settled in the grilling rounds', Date: 2026-10-07
+# --- observe -> replan, read back from the trace -------------------------------------------
+
+
+def replan_cycles(events: Sequence[dict], agent: str) -> list[dict]:
+    """Each model turn that chose tools after an earlier turn's results: what it had observed, then what it chose.
+
+    Built from the trace, where each `agent_turn` line is followed by the
+    `tool_call` lines it asked for. Calls within one turn were chosen together,
+    so a cycle pairs one turn's results with the next turn's choices.
+    """
+    turns: list[dict] = []
+    for event in events:
+        if event.get("agent") != agent:
+            continue
+        if event["event"] == "agent_turn":
+            turns.append({"turn": event["turn"], "calls": []})
+        elif event["event"] == "tool_call" and turns:
+            turns[-1]["calls"].append(event)
+    return [
+        {"turn": current["turn"], "observed": previous["calls"], "chose": current["calls"]}
+        for previous, current in pairwise(turns)
+        if previous["calls"] and current["calls"]
+    ]
+
+
+def print_replan_cycles(events: Sequence[dict], agent: str, write: Callable[[str], None] = print) -> None:
+    cycles = replan_cycles(events, agent)
+    if not cycles:
+        write(f"[{agent}] no observe -> replan cycle: the model chose all its tools in one turn")
+    for cycle in cycles:
+        write(f"cycle into turn {cycle['turn']}")
+        for call in cycle["observed"]:
+            write(f"  observed {call['tool']} -> {call['status']}: {call['output'][:DIGEST_PREVIEW_CHARS]}")
+        for call in cycle["chose"]:
+            shown = ", ".join(f"{key}={_short(value)}" for key, value in call["args"].items())
+            write(f"  chose    {call['tool']}({shown})")
+            write(f"           why: {call['why']}")
