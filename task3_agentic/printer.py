@@ -20,6 +20,7 @@ full (the DataBrief, the ClarificationRequest, the ClarificationResponse),
 and every cache lookup and save.
 """
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 2: the 3A agent loop, report, hedge levels, printer and short-term memory, as designed in the grilling rounds', Date: 2026-10-07
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Add a stronger paid OpenAI model (gpt-6.1-sol) for testing, in a separate file so it can be deleted before submission', Date: 2026-10-07
 
 from __future__ import annotations
 
@@ -29,6 +30,7 @@ from typing import Any
 
 from langchain_core.messages import AIMessage
 
+from task3_agentic.agent import message_text
 from task3_agentic.tools import WHY_ARG
 
 DIGEST_PREVIEW_CHARS = 160
@@ -63,7 +65,7 @@ def _print_turn(agent: str, update: dict, write: Callable[[str], None]) -> None:
             write(f"  -> {call['name']}({shown})")
             if call["args"].get(WHY_ARG):
                 write(f"     why: {call['args'][WHY_ARG]}")
-        text = message.content if isinstance(message.content, str) else ""
+        text = message_text(message)  # a string, or content blocks on OpenAI's Responses API
         if text and not message.tool_calls:
             write(f"  says: {text[:ANSWER_PREVIEW_CHARS]}")
     for warning in update.get("warnings", []):
@@ -176,3 +178,4 @@ PIPELINE_PRINTERS: dict[str, Callable[[dict, Callable[[str], None]], None]] = {
     "critique_request": _print_request,
     "clarification": _print_clarification,
 }
+

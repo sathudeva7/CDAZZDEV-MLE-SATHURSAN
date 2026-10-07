@@ -296,3 +296,15 @@ def test_every_tool_can_be_bound(tmp_path):
     session = make_session(tmp_path)
 
     assert [tool.name for tool in session.langchain_tools(TOOL_NAMES, agent="single")] == list(TOOL_NAMES)
+
+
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Add a stronger paid OpenAI model (gpt-6.1-sol) for testing, in a separate file so it can be deleted before submission', Date: 2026-10-07
+def test_printer_shows_text_sent_as_content_blocks():
+    # OpenAI's Responses API sends a reply as a list of content blocks, not a string.
+    reply = AIMessage(content=[{"type": "reasoning", "summary": []}, {"type": "text", "text": "Volatility was 24%."}])
+    lines: list[str] = []
+
+    print_update("single", {"agent": {"messages": [reply], "turns": 1}}, write=lines.append)
+
+    assert any("says: Volatility was 24%." in line for line in lines)
+

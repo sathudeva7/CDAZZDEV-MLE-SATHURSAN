@@ -124,6 +124,16 @@ of the assessment brief. Every AI-assisted block also carries an inline
 | 2026-10-07 | Claude (claude-opus-5-5) | `tests/test_live_task3_pipeline.py` | 'Build Task 3 PR 3: the 3B two-agent pipeline with the critique loop and the persistent cache, as designed in the grilling rounds' | Opt-in live pipeline run and cache hit, skipped without a key |
 | 2026-10-07 | Claude (claude-opus-5-5) | `GLOSSARY.md` | 'Build Task 3 PR 3: the 3B two-agent pipeline with the critique loop and the persistent cache, as designed in the grilling rounds' | Data brief, Clarification request, Cached run |
 | 2026-10-06 | Claude (claude-opus-5-5) | `CITATIONS.md` | 'Create the cite-ai-usage skill' | This file's structure |
+| 2026-10-07 | Claude (claude-opus-5-5) | `common/llm_openai.py` | 'Add a stronger paid OpenAI model (gpt-6.1-sol) for testing, in a separate file so it can be deleted before submission' | Testing-only openai_dev profile (gpt-6.1-sol): request shape, Responses API agent model, effort raised one step |
+| 2026-10-07 | Claude (claude-opus-5-5) | `tests/test_llm_openai.py` | 'Add a stronger paid OpenAI model (gpt-6.1-sol) for testing, in a separate file so it can be deleted before submission' | Offline tests for the openai_dev profile's requests and agent model |
+| 2026-10-07 | Claude (claude-opus-5-5) | `common/llm_config.py` | 'Add a stronger paid OpenAI model (gpt-6.1-sol) for testing, in a separate file so it can be deleted before submission' | ReasoningStyle gains 'openai'; registers the testing-only profile |
+| 2026-10-07 | Claude (claude-opus-5-5) | `common/llm.py` | 'Add a stronger paid OpenAI model (gpt-6.1-sol) for testing, in a separate file so it can be deleted before submission' | Rewrites the request for the openai reasoning style |
+| 2026-10-07 | Claude (claude-opus-5-5) | `task3_agentic/agent.py` | 'Add a stronger paid OpenAI model (gpt-6.1-sol) for testing, in a separate file so it can be deleted before submission' | Builds the OpenAI agent model; message_text made public for content-block replies |
+| 2026-10-07 | Claude (claude-opus-5-5) | `task3_agentic/printer.py` | 'Add a stronger paid OpenAI model (gpt-6.1-sol) for testing, in a separate file so it can be deleted before submission' | Prints reply text sent as content blocks |
+| 2026-10-07 | Claude (claude-opus-5-5) | `task3_agentic/pipeline.py` | 'Add a stronger paid OpenAI model (gpt-6.1-sol) for testing, in a separate file so it can be deleted before submission' | Reads Agent A's answer text from content blocks too |
+| 2026-10-07 | Claude (claude-opus-5-5) | `tests/test_task3_agent.py` | 'Add a stronger paid OpenAI model (gpt-6.1-sol) for testing, in a separate file so it can be deleted before submission' | Test that the printer shows text sent as content blocks |
+| 2026-10-07 | Claude (claude-opus-5-5) | `.env.example` | 'Add a stronger paid OpenAI model (gpt-6.1-sol) for testing, in a separate file so it can be deleted before submission' | OPENAI_API_KEY for the testing-only profile |
+| 2026-10-07 | Claude (claude-opus-5-5) | `CLAUDE.md` | 'Add a stronger paid OpenAI model (gpt-6.1-sol) for testing, in a separate file so it can be deleted before submission' | Rule 5 marks openai_dev as testing-only, to delete before submission |
 
 ## Adapted open-source code
 

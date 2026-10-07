@@ -1,6 +1,7 @@
 <!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Write the project CLAUDE.md with the hard rules', Date: 2026-10-06 -->
 <!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 1B (Jev headline sentiment, LLM reasons and Recommendation) as designed in the grilling rounds', Date: 2026-10-06 -->
 <!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Write the root README and a Task 1 REFLECTION as decided in the grilling round', Date: 2026-10-07 -->
+<!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Add a stronger paid OpenAI model (gpt-6.1-sol) for testing, in a separate file so it can be deleted before submission', Date: 2026-10-07 -->
 # CDAZZDEV Senior MLE assessment
 
 This repo is a take-home assessment submission, published as the public GitHub
@@ -43,7 +44,10 @@ Breaking a rule marked (DQ) disqualifies the whole submission.
 5. **Submitted runs are free tier.** Notebooks are executed for submission on
    the `free` LLM profile, with Groq, OpenRouter free models, yfinance,
    duckduckgo-search and Colab's free GPU. The `paid_dev` profile is for local
-   testing only. Ask before adding anything else that needs a paid plan.
+   testing only. <!-- TESTING-ONLY(openai) --> So is `openai_dev` (OpenAI's
+   gpt-6.1-sol, `common/llm_openai.py`), added 2026-10-07 to judge Task 3's
+   output; delete it and every `TESTING-ONLY(openai)` line before submission.
+   Ask before adding anything else that needs a paid plan.
    One deliberate exception (2026-10-06), the candidate's own choice: Jev,
    TypeSafe's paid decision model, labels headline sentiment in every profile
    when its key is set (`docs/adr/0001`). Public docs call it "a deliberate

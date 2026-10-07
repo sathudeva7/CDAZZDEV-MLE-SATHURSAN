@@ -29,6 +29,7 @@ with_fallbacks. The SDK retries 429s, honouring Retry-After, before the
 fallback is tried.
 """
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 2: the 3A agent loop, report, hedge levels, printer and short-term memory, as designed in the grilling rounds', Date: 2026-10-07
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Add a stronger paid OpenAI model (gpt-6.1-sol) for testing, in a separate file so it can be deleted before submission', Date: 2026-10-07
 
 from __future__ import annotations
 
@@ -57,6 +58,7 @@ from pydantic import ValidationError
 
 from common.llm import StructuredLLM
 from common.llm_config import Profile, Provider, active_profile, api_key
+from common.llm_openai import openai_chat_model  # TESTING-ONLY(openai)
 from task3_agentic.prompts import RESEARCH_AGENT, RESEARCH_QUERY
 from task3_agentic.report import write_report
 from task3_agentic.schemas import ResearchReport, ToolResult
@@ -124,6 +126,8 @@ def chat_models(profile: Profile | None = None, effort: str = AGENT_EFFORT) -> l
 
 
 def _chat_model(provider: Provider, profile: Profile, key: str, effort: str) -> ChatOpenAI:
+    if provider.reasoning_style == "openai":  # TESTING-ONLY(openai)
+        return openai_chat_model(provider, profile, key, effort)  # TESTING-ONLY(openai)
     # Groq takes reasoning_effort directly; OpenRouter wants it under `reasoning` (see common/llm.py).
     options: dict[str, Any] = {"reasoning_effort": effort} if provider.reasoning_style == "groq" else {}
     extra_body = dict(provider.extra_body)
@@ -188,7 +192,7 @@ def build_agent_graph(
             turn=turn,
             model=reply.response_metadata.get("model_name"),
             tool_calls=[call["name"] for call in reply.tool_calls],
-            text=_text(reply)[:TRACE_TEXT_CHARS],
+            text=message_text(reply)[:TRACE_TEXT_CHARS],
             tokens=(reply.usage_metadata or {}).get("total_tokens"),
         )
         return {"messages": [reply], "turns": turn, "warnings": warnings}
@@ -349,7 +353,7 @@ def invoke_agent(graph, name: str, update: dict, thread_id: str, on_update: Call
     state = graph.get_state(config).values
     return AgentRun(
         thread_id=thread_id,
-        answer=_text(next((m for m in reversed(state["messages"]) if isinstance(m, AIMessage)), AIMessage(""))),
+        answer=message_text(next((m for m in reversed(state["messages"]) if isinstance(m, AIMessage)), AIMessage(""))),
         observations=state["observations"][seen_obs:],
         report=None,
         warnings=state["warnings"][seen_warnings:],
@@ -357,7 +361,7 @@ def invoke_agent(graph, name: str, update: dict, thread_id: str, on_update: Call
     )
 
 
-def _text(message: AIMessage) -> str:
+def message_text(message: AIMessage) -> str:
     """The message's text, whether the provider sent a string or a list of content blocks."""
     if isinstance(message.content, str):
         return message.content

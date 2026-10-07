@@ -9,6 +9,7 @@ Keys come from the environment (a gitignored .env locally) or from Colab
 Secrets in a notebook. They never appear in code.
 """
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build the llm-structured-call skill with its shared helper and tests', Date: 2026-10-06
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Add a stronger paid OpenAI model (gpt-6.1-sol) for testing, in a separate file so it can be deleted before submission', Date: 2026-10-07
 
 from __future__ import annotations
 
@@ -22,7 +23,7 @@ load_dotenv()  # finds the repo-root .env when running locally; a no-op in Colab
 
 # How a provider takes the reasoning-effort setting. Groq accepts the OpenAI
 # `reasoning_effort` parameter for gpt-oss; OpenRouter wants `reasoning: {effort}`.
-ReasoningStyle = Literal["groq", "openrouter"]
+ReasoningStyle = Literal["groq", "openrouter", "openai"]  # TESTING-ONLY(openai): "openai" is common/llm_openai.py's
 
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
@@ -132,3 +133,8 @@ def secret(name: str) -> str | None:
         return userdata.get(name)
     except (userdata.SecretNotFoundError, userdata.NotebookAccessError):
         return None
+
+
+# TESTING-ONLY(openai): registers the openai_dev profile. Imported last, because
+# that module builds its profile from the names defined above.
+import common.llm_openai  # noqa: F401  TESTING-ONLY(openai)
