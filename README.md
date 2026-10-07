@@ -1,14 +1,15 @@
 <!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Write the root README and a Task 1 REFLECTION as decided in the grilling round', Date: 2026-10-07 -->
+<!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'can u add reflectionmd file now (add Task 2 within 600 words)', Date: 2026-10-07 -->
 # CDAZZDEV Senior MLE assessment
 
-A first-pass equity research assistant built on free market data and LLMs.
-Task 1 is complete; Task 3 (the agentic system) is in progress and reuses
-Task 1's pipeline as its tools.
+A first-pass equity research assistant built on free market data and LLMs
+(Task 1), an agentic research system that reuses Task 1's pipeline as its tools
+(Task 3), and a small code model fine-tuned with QLoRA to write docstrings (Task 2).
 
 | Task | Status | Notebook | Folder |
 |---|---|---|---|
 | 1. Financial AI: data pipeline, LLM sentiment and signal reasoning, bonus brief | Done | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sathudeva7/CDAZZDEV-MLE-SATHURSAN/blob/main/task1_financial/task1_equity_research.ipynb) | [`task1_financial/`](task1_financial/) |
-| 2. Generative AI: fine-tuning | Not attempted: time went to depth in Tasks 1 and 3 | | |
+| 2. Generative AI: QLoRA fine-tune of Qwen2.5-Coder-3B to write docstrings ([model](https://huggingface.co/sathudeva7/qwen2.5-coder-3b-docstrings)) | Done | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sathudeva7/CDAZZDEV-MLE-SATHURSAN/blob/main/task2_genai/task2_docstring_finetune.ipynb) | [`task2_genai/`](task2_genai/) |
 | 3. Agentic AI: tool-using and multi-agent research | In progress | | `task3_agentic/` |
 
 Also in the root: [`REFLECTION.md`](REFLECTION.md) (decisions, improvements and
@@ -28,6 +29,9 @@ repo and installs `requirements.txt`.
 | `JEV_API_KEY` | headline sentiment labels (see below) | no |
 
 Task 1A (prices, indicators, news, summary) needs no key at all.
+
+Task 2 needs a T4 GPU runtime instead, and only `HF_TOKEN` (write access) to
+publish the merged model; see [`task2_genai/README.md`](task2_genai/README.md).
 
 **Local.**
 

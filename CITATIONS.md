@@ -176,6 +176,8 @@ of the assessment brief. Every AI-assisted block also carries an inline
 | 2026-10-07 | Claude (claude-opus-5-5) | `task2_genai/task2_docstring_finetune.ipynb` | 'can u please check these outputs and can u label them (second reviewer; labels confirmed by the candidate)' | Second-reviewer reading of the 12 manual labels, each confirmed by the candidate |
 | 2026-10-07 | Claude (claude-opus-5-5) | `task2_genai/task2_docstring_finetune.ipynb` | 'Write 2B.6 and 2C.7 from the submission run's outputs' | Error notes (2B.6) and the two-paragraph qualitative analysis (2C.7) |
 | 2026-10-07 | Claude (claude-opus-5-5) | `task2_genai/README.md` | 'Write 2B.6 and 2C.7 from the submission run's outputs' | Results table and model link |
+| 2026-10-07 | Claude (claude-opus-5-5) | `REFLECTION.md` | 'can u add reflectionmd file now (add Task 2 within 600 words)' | Reflection rewritten for Tasks 1, 2 and 3 (592 words) |
+| 2026-10-07 | Claude (claude-opus-5-5) | `README.md` | 'can u add reflectionmd file now (add Task 2 within 600 words)' | Task 2 marked done with its notebook badge and model link |
 
 ## Adapted open-source code
 
