@@ -16,6 +16,7 @@ can see validation failures being caught without re-running anything.
 """
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build the llm-structured-call skill with its shared helper and tests', Date: 2026-10-06
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Add a stronger paid OpenAI model (gpt-6.1-sol) for testing, in a separate file so it can be deleted before submission', Date: 2026-10-07
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'yes do both (OpenAI testing cleanup before the Task 3 submission run)', Date: 2026-10-07
 
 from __future__ import annotations
 
@@ -33,7 +34,7 @@ from openai import OpenAI
 from pydantic import BaseModel, ValidationError
 
 from common.llm_config import Profile, Provider, active_profile, api_key
-from common.llm_openai import openai_request  # TESTING-ONLY(openai)
+from common.llm_openai import openai_request  # the request shape for Task 2's teacher
 
 logger = logging.getLogger(__name__)
 
@@ -299,8 +300,8 @@ class StructuredLLM:
                     "response_format": response_format,
                     **_reasoning_options(provider, reasoning_effort),
                 }
-                if provider.reasoning_style == "openai":  # TESTING-ONLY(openai)
-                    request = openai_request(request, reasoning_effort)  # TESTING-ONLY(openai)
+                if provider.reasoning_style == "openai":  # Task 2's teacher only (docs/adr/0002)
+                    request = openai_request(request, reasoning_effort)
                 raw_response = client.chat.completions.with_raw_response.create(**request)
             except openai.BadRequestError as exc:
                 if exc.code != JSON_VALIDATE_FAILED:

@@ -16,6 +16,7 @@ The teacher is GPT-6.1 Sol, a deliberate exception to the free-tier setup
 (docs/adr/0002). Its calls are logged to task2_genai/logs/teacher_calls.jsonl.
 """
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build the Task 2 data script as designed in the grilling rounds', Date: 2026-10-07
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'yes do both (OpenAI testing cleanup before the Task 3 submission run)', Date: 2026-10-07
 
 from __future__ import annotations
 
@@ -26,13 +27,12 @@ import logging
 import threading
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-import common.llm_openai  # noqa: F401  registers the openai_dev profile the teacher is built from
 from common.llm import StructuredLLM, enable_console_logging
-from common.llm_config import PROFILES
+from common.llm_config import PAID_MAX_RETRIES, Profile
+from common.llm_openai import OPENAI, OPENAI_TIMEOUT_S
 from task2_genai import docstrings
 from task2_genai.dataset import (
     DATA_DIR,
@@ -61,12 +61,18 @@ FUNCTIONS_FILE = DATA_DIR / "functions.jsonl"
 REJECTED_FILE = DATA_DIR / "rejected.jsonl"
 LABELS_FILE = DATA_DIR / "labels.jsonl"
 
-# Sol on the openai_dev profile, logging to its own committed file so the
-# teacher's calls are part of the submission evidence.
-TEACHER_PROFILE = replace(PROFILES["openai_dev"], name="t2_teacher", log_file="teacher_calls.jsonl")
-# The openai_dev profile sends one step above this (low -> medium): enough to write
-# and read 40-line functions carefully without long, costly thinking.
-TEACHER_EFFORT = "low"
+# Sol, with no fallback: a teacher failure should surface, not switch models mid-dataset.
+# It logs to its own committed file, so the teacher's calls are part of the submission evidence.
+TEACHER_PROFILE = Profile(
+    name="t2_teacher",
+    primary=OPENAI,
+    fallback=None,
+    max_retries=PAID_MAX_RETRIES,
+    timeout_s=OPENAI_TIMEOUT_S,
+    log_file="teacher_calls.jsonl",
+)
+# Enough to write and read 40-line functions carefully without long, costly thinking.
+TEACHER_EFFORT = "medium"
 # Parallel teacher calls. The paid tier's rate limits allow far more; 8 keeps a
 # run to a few minutes without bursts that trigger 429s.
 WORKERS = 8

@@ -1,4 +1,5 @@
 <!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build the Task 2 data script as designed in the grilling rounds', Date: 2026-10-07 -->
+<!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'yes do both (OpenAI testing cleanup before the Task 3 submission run)', Date: 2026-10-07 -->
 # GPT-6.1 Sol writes Task 2's training data
 
 Task 2's teacher is OpenAI's GPT-6.1 Sol, a paid API. It is a deliberate exception to
@@ -29,5 +30,5 @@ Why:
 - Every teacher call is logged in `task2_genai/logs/teacher_calls.jsonl`, with tokens.
 - The teacher (OpenAI) and the student (Qwen) are different model families, as the
   brief requires.
-- The `openai_dev` profile that Task 2's teacher is built from stays in the repo after
-  the Task 3 testing code is removed.
+- Sol's provider (`common/llm_openai.py`) is not an LLM profile, so `LLM_PROFILE` cannot
+  select it and no notebook or agent runs on it. Tasks 1 and 3 run on the `free` profile.

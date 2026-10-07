@@ -30,6 +30,7 @@ fallback is tried.
 """
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build Task 3 PR 2: the 3A agent loop, report, hedge levels, printer and short-term memory, as designed in the grilling rounds', Date: 2026-10-07
 # AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Add a stronger paid OpenAI model (gpt-6.1-sol) for testing, in a separate file so it can be deleted before submission', Date: 2026-10-07
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'yes do both (OpenAI testing cleanup before the Task 3 submission run)', Date: 2026-10-07
 
 from __future__ import annotations
 
@@ -58,7 +59,6 @@ from pydantic import ValidationError
 
 from common.llm import StructuredLLM
 from common.llm_config import Profile, Provider, active_profile, api_key
-from common.llm_openai import openai_chat_model  # TESTING-ONLY(openai)
 from task3_agentic.prompts import RESEARCH_AGENT, RESEARCH_QUERY
 from task3_agentic.report import write_report
 from task3_agentic.schemas import ResearchReport, ToolResult
@@ -126,8 +126,6 @@ def chat_models(profile: Profile | None = None, effort: str = AGENT_EFFORT) -> l
 
 
 def _chat_model(provider: Provider, profile: Profile, key: str, effort: str) -> ChatOpenAI:
-    if provider.reasoning_style == "openai":  # TESTING-ONLY(openai)
-        return openai_chat_model(provider, profile, key, effort)  # TESTING-ONLY(openai)
     # Groq takes reasoning_effort directly; OpenRouter wants it under `reasoning` (see common/llm.py).
     options: dict[str, Any] = {"reasoning_effort": effort} if provider.reasoning_style == "groq" else {}
     extra_body = dict(provider.extra_body)

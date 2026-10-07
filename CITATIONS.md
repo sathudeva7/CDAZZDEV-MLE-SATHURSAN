@@ -179,6 +179,16 @@ of the assessment brief. Every AI-assisted block also carries an inline
 | 2026-10-07 | Claude (claude-opus-5-5) | `REFLECTION.md` | 'can u add reflectionmd file now (add Task 2 within 600 words)' | Reflection rewritten for Tasks 1, 2 and 3 (592 words) |
 | 2026-10-07 | Claude (claude-opus-5-5) | `README.md` | 'can u add reflectionmd file now (add Task 2 within 600 words)' | Task 2 marked done with its notebook badge and model link |
 | 2026-10-07 | Claude (claude-opus-5-5) | `task1_financial/README.md` | 'Ship the executed Task 1 notebook with its README, call log and report' | Task 1 README with Colab badge, run results and report link |
+| 2026-10-07 | Claude (claude-opus-5-5) | `common/llm_openai.py` | 'yes do both (OpenAI testing cleanup before the Task 3 submission run)' | Sol provider kept only for Task 2's teacher; testing profile and agent model removed |
+| 2026-10-07 | Claude (claude-opus-5-5) | `common/llm_config.py` | 'yes do both (OpenAI testing cleanup before the Task 3 submission run)' | openai_dev profile registration removed |
+| 2026-10-07 | Claude (claude-opus-5-5) | `common/llm.py` | 'yes do both (OpenAI testing cleanup before the Task 3 submission run)' | OpenAI request branch retagged for Task 2's teacher |
+| 2026-10-07 | Claude (claude-opus-5-5) | `task3_agentic/agent.py` | 'yes do both (OpenAI testing cleanup before the Task 3 submission run)' | OpenAI chat-model branch removed |
+| 2026-10-07 | Claude (claude-opus-5-5) | `task3_agentic/task3_agentic_research.ipynb` | 'yes do both (OpenAI testing cleanup before the Task 3 submission run)' | Notebook set to the free profile; Models paragraph rewritten |
+| 2026-10-07 | Claude (claude-opus-5-5) | `task2_genai/generate_data.py` | 'yes do both (OpenAI testing cleanup before the Task 3 submission run)' | Teacher profile built in Task 2 from the OpenAI provider |
+| 2026-10-07 | Claude (claude-opus-5-5) | `tests/test_llm_openai.py` | 'yes do both (OpenAI testing cleanup before the Task 3 submission run)' | Tests that the teacher is not a selectable profile and sends OpenAI's request shape |
+| 2026-10-07 | Claude (claude-opus-5-5) | `docs/adr/0002-paid-teacher-for-task2.md` | 'yes do both (OpenAI testing cleanup before the Task 3 submission run)' | Consequence updated: the teacher's provider is not a profile |
+| 2026-10-07 | Claude (claude-opus-5-5) | `CLAUDE.md` | 'yes do both (OpenAI testing cleanup before the Task 3 submission run)' | Rule 5: testing profile removed; Task 2 teacher exception stays |
+| 2026-10-07 | Claude (claude-opus-5-5) | `.env.example` | 'yes do both (OpenAI testing cleanup before the Task 3 submission run)' | OPENAI_API_KEY documented as Task 2 data regeneration only |
 
 ## Adapted open-source code
 
