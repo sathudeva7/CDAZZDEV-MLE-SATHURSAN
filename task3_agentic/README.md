@@ -1,4 +1,5 @@
 <!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Ship the executed Task 3 notebook with its trace, call log, cache and README', Date: 2026-10-07 -->
+<!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'add the dashboard read me (show the trace dashboard screenshot in the Task 3 README)', Date: 2026-10-07 -->
 # Task 3: agentic equity research
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sathudeva7/CDAZZDEV-MLE-SATHURSAN/blob/main/task3_agentic/task3_agentic_research.ipynb)
@@ -46,6 +47,26 @@ The run's files:
 | `report.py` | The report, hedge levels computed in code, the evidence check and the template fallback |
 | `cache.py`, `trace.py`, `printer.py` | The persistent cache, the JSONL trace, and the live printout |
 | `dashboard/` | Bonus: a Streamlit viewer for the trace (`streamlit run task3_agentic/dashboard/app.py`) |
+
+## Bonus: trace dashboard
+
+A Streamlit dashboard (`dashboard/`) reads `agent_trace.jsonl` and shows each run:
+- tool calls, failures, tool time, model turns, tokens and cache hits
+- a timeline with one row per agent and tool, coloured by status, with the A↔B messages
+  marked
+- a step-by-step view of the run
+
+Run it from the repo root:
+
+```bash
+pip install -r task3_agentic/dashboard/requirements.txt
+streamlit run task3_agentic/dashboard/app.py
+```
+
+![Task 3 trace dashboard: the 3B pipeline run's timeline](dashboard/screenshot.png)
+
+*The screenshot is from a development run's trace. Run the command above to see the
+submitted run, which is the committed `logs/agent_trace.jsonl`.*
 
 ## Running
 
