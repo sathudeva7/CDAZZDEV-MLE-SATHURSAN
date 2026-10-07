@@ -143,6 +143,11 @@ of the assessment brief. Every AI-assisted block also carries an inline
 | 2026-10-07 | Claude (claude-opus-5-5) | `task3_agentic/schemas.py` | 'ya run fallback to template report (no LLM report when no price data came back)' | Template banner in the Markdown report says why |
 | 2026-10-07 | Claude (claude-opus-5-5) | `tests/test_task3_agent.py` | 'ya run fallback to template report (no LLM report when no price data came back)' | Test for the no-price-data template; three agent scenarios now fetch prices |
 | 2026-10-07 | Claude (claude-opus-5-5) | `tests/test_task3_pipeline.py` | 'ya run fallback to template report (no LLM report when no price data came back)' | Test that 3B's final report without price data is a template |
+| 2026-10-07 | Claude (claude-opus-5-5) | `task3_agentic/report.py` | 'yes fix the hedge (levels from the volatility window closest to the 63-day horizon)' | horizon_volatility: hedge levels use the volatility window closest to the 63-day horizon; 3B recomputes them with the clarification |
+| 2026-10-07 | Claude (claude-opus-5-5) | `task3_agentic/handoff.py` | 'yes fix the hedge (levels from the volatility window closest to the 63-day horizon)' | The brief's hedge levels follow the same rule |
+| 2026-10-07 | Claude (claude-opus-5-5) | `task3_agentic/prompts.py` | 'yes fix the hedge (levels from the volatility window closest to the 63-day horizon)' | FINAL_REPORT v2: levels come from the brief and the analyst's answer |
+| 2026-10-07 | Claude (claude-opus-5-5) | `tests/test_task3_agent.py` | 'yes fix the hedge (levels from the volatility window closest to the 63-day horizon)' | Test that 3A prefers the horizon-matched volatility |
+| 2026-10-07 | Claude (claude-opus-5-5) | `tests/test_task3_pipeline.py` | 'yes fix the hedge (levels from the volatility window closest to the 63-day horizon)' | Tests for horizon_volatility and 3B's recomputed levels |
 
 ## Adapted open-source code
 

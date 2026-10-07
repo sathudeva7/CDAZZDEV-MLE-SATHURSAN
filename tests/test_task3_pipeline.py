@@ -23,7 +23,7 @@ from task3_agentic.handoff import (
 )
 from task3_agentic.pipeline import WRITER_TOOLS, ResearchPipeline
 from task3_agentic.printer import print_update
-from task3_agentic.report import write_final_report
+from task3_agentic.report import horizon_volatility, write_final_report
 from task3_agentic.schemas import (
     ClarificationRequest,
     ClarificationResponse,
@@ -31,6 +31,7 @@ from task3_agentic.schemas import (
     HeadlineLabel,
     HeadlineLabels,
     KeyObservationsAnswer,
+    VolatilityStats,
 )
 from tests.fakes import (
     TODAY,
@@ -122,6 +123,8 @@ def test_brief_request_answer_and_report_flow_in_order(tmp_path, feeds):
     assert run.response.fulfilled_by == "agent" and run.response.volatility.window == 63
     assert run.report.clarification_used.startswith("The 63-day volatility")
     assert "calculate_volatility" in run.report.tools_called  # cited via A's answer, though B never called it
+    # The final report's levels use the answer's 63-day volatility, the window that matches the horizon.
+    assert run.report.hedge.levels.volatility_source == "calculate_volatility, 63-day"
     trace = events(tmp_path)
     assert trace[0] == "cache" and trace[-3:] == ["critique", "report", "cache"]  # lookup first, save last
     assert trace.count("critique") == 2  # one request, one response: the loop ran exactly once
@@ -279,3 +282,17 @@ def test_final_report_without_any_price_data_is_a_template(tmp_path):
 
     assert report.generated_by == "template" and llm.replies  # the LLM was never asked
     assert report.warnings[0].startswith("no price data came back")
+
+
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'yes fix the hedge (levels from the volatility window closest to the 63-day horizon)', Date: 2026-10-07
+def test_hedge_volatility_is_the_window_closest_to_the_horizon():
+    def vol(window, pct):
+        return VolatilityStats(ticker="AAPL", window=window, as_of=TODAY, current_pct=pct, min_1y_pct=10, median_1y_pct=20, max_1y_pct=40, percentile_1y=50, observations=252)
+
+    thirty, sixty_three = vol(30, 21.0), vol(63, 27.0)
+
+    assert horizon_volatility(thirty, sixty_three) is sixty_three
+    assert horizon_volatility(sixty_three, thirty) is sixty_three  # order does not matter, distance does
+    assert horizon_volatility(None, thirty) is thirty
+    assert horizon_volatility(vol(60, 1.0), vol(66, 2.0)).current_pct == 2.0  # a tie goes to the later estimate
+    assert horizon_volatility() is None
