@@ -1,0 +1,99 @@
+{
+ "student": "Qwen/Qwen2.5-Coder-3B-Instruct",
+ "model_url": "https://huggingface.co/sathudeva7/qwen2.5-coder-3b-docstrings",
+ "split_sizes": {
+  "train": 212,
+  "val": 26,
+  "test": 26
+ },
+ "loss_per_epoch": [
+  {
+   "epoch": 1,
+   "train_loss": 1.2547,
+   "val_loss": 0.9892237782478333
+  },
+  {
+   "epoch": 2,
+   "train_loss": 0.8885,
+   "val_loss": 0.9033381938934326
+  },
+  {
+   "epoch": 3,
+   "train_loss": 0.7369,
+   "val_loss": 0.8944147825241089
+  }
+ ],
+ "rougeL_f1_mean": {
+  "base": 0.24227073892110282,
+  "fine_tuned": 0.5401593480852401
+ },
+ "bertscore_f1_mean": {
+  "base": 0.03525183930133398,
+  "fine_tuned": 0.5942225353075907
+ },
+ "structure_check": {
+  "Base": {
+   "correct": 0,
+   "partial": 26,
+   "hallucinated": 0,
+   "unparseable": 0
+  },
+  "Fine-tuned": {
+   "correct": 22,
+   "partial": 3,
+   "hallucinated": 1,
+   "unparseable": 0
+  }
+ },
+ "manual_review": {
+  "geometry-async-simple-02": [
+   "correct",
+   "all sections and the summary match the code"
+  ],
+  "http-async-simple-02": [
+   "correct",
+   "accurate; raise_for_status is not a raise statement here"
+  ],
+  "finance-async-tricky-02": [
+   "hallucinated",
+   "invents 'rounding down to zero for zero interest'; calls the nominal rate 'effective'"
+  ],
+  "datetime-async-simple-01": [
+   "correct",
+   "all sections and the summary match the code"
+  ],
+  "files-function-tricky-01": [
+   "hallucinated",
+   "says ValueError when the workspace is not a directory; the code raises NotADirectoryError"
+  ],
+  "caching-function-medium-01": [
+   "partial",
+   "omits that expired entries are deleted from the cache"
+  ],
+  "validation-generator-simple-02": [
+   "correct",
+   "accurate, including nonfinite readings"
+  ],
+  "validation-generator-tricky-02": [
+   "correct",
+   "accurate; 'text inputs' slightly undersells non-string handling"
+  ],
+  "files-method-medium-02": [
+   "correct",
+   "accurate; count of changed options matches the code"
+  ],
+  "validation-method-simple-01": [
+   "hallucinated",
+   "documents a max_length parameter the method does not have"
+  ],
+  "datetime-method-simple-02": [
+   "partial",
+   "'rounded up to zero' garbles the clamp at zero"
+  ],
+  "caching-method-tricky-02": [
+   "hallucinated",
+   "TypeError condition reversed: the code rejects booleans"
+  ]
+ },
+ "runtime_min": 65.7
+}

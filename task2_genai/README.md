@@ -1,4 +1,5 @@
 <!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build the Task 2 notebook: QLoRA training, merge, and evaluation against the base model', Date: 2026-10-07 -->
+<!-- AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Write 2B.6 and 2C.7 from the submission run's outputs', Date: 2026-10-07 -->
 # Task 2: fine-tuning a small code model to write docstrings
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sathudeva7/CDAZZDEV-MLE-SATHURSAN/blob/main/task2_genai/task2_docstring_finetune.ipynb)
@@ -13,6 +14,27 @@ A docstring is checked against the function with Python's `ast` module
 (`docstrings.py`), which labels it **correct**, **partial** (something missing, nothing
 invented) or **hallucinated** (a parameter, exception or section the code does not
 have). The same check filters the teacher's training labels and scores both models.
+
+**Merged model:** https://huggingface.co/sathudeva7/qwen2.5-coder-3b-docstrings (public)
+
+## Results (submission run, Colab T4, 66 min)
+
+All figures are from the 26 held-out test functions, with the same system prompt and greedy
+decoding for both models.
+
+| Metric | Base | Fine-tuned |
+|---|---|---|
+| ROUGE-L F1 (mean) | 0.242 | **0.540** |
+| BERTScore F1 (mean, rescaled) | 0.035 | **0.594** |
+| `ast` check: correct / partial / hallucinated | 0 / 26 / 0 | **22 / 3 / 1** |
+
+- **Validation loss per epoch:** 0.989 → 0.903 → 0.894.
+- **Manual review of 12 fine-tuned answers:** 6 correct, 2 partial, 4 hallucinated, a
+  **33% hallucination rate**.
+- **What changed:** fine-tuning fixed the structure. The base model mostly wrote one prose
+  paragraph, with `Args`, `Raises` and `Yields` almost always missing. The remaining errors
+  are in the prose: wrong exception names, reversed conditions and invented behaviour.
+  Section 2C.7 of the notebook has the examples and the next steps.
 
 ## Pipeline
 
@@ -44,7 +66,7 @@ have). The same check filters the teacher's training labels and scores both mode
 | `task2_docstring_finetune.ipynb` | The Colab notebook: data report, training, merge, evaluation |
 | `data/train.jsonl`, `val.jsonl`, `test.jsonl` | The chat-format dataset (system, user, assistant turns) |
 | `data/functions.jsonl`, `labels.jsonl`, `rejected.jsonl` | Every teacher output, with validation and check results |
-| `evaluation/` | Run outputs: loss history and plot, predictions, results |
+| `evaluation/` | Run outputs: `results.json`, `predictions.jsonl` (both models' answers with scores), loss history and plot |
 | `logs/teacher_calls.jsonl` | One line per teacher call: prompt, model, tokens, outcome |
 
 ## Running
