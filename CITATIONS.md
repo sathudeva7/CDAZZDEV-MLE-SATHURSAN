@@ -153,6 +153,7 @@ of the assessment brief. Every AI-assisted block also carries an inline
 | 2026-10-07 | Claude (claude-opus-5-5) | `task3_agentic/dashboard/app.py` | 'Build the Streamlit trace dashboard as settled in the grilling round (go with recommendations)' | Streamlit trace dashboard: run picker, metrics, timeline, steps and tools tabs |
 | 2026-10-07 | Claude (claude-opus-5-5) | `task3_agentic/dashboard/requirements.txt` | 'Build the Streamlit trace dashboard as settled in the grilling round (go with recommendations)' | Dashboard-only dependency (streamlit) |
 | 2026-10-07 | Claude (claude-opus-5-5) | `tests/test_task3_dashboard.py` | 'Build the Streamlit trace dashboard as settled in the grilling round (go with recommendations)' | Offline tests for the views and a headless AppTest of the app |
+| 2026-10-07 | Claude (claude-opus-5-5) | `REFLECTION.md` | 'yes write the reflection (rewrite it to cover Tasks 1 and 3)' | Reflection rewritten for Tasks 1 and 3 (594 words) |
 
 ## Adapted open-source code
 
