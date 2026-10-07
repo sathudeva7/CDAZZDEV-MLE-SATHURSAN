@@ -1,0 +1,4 @@
+# AI-ASSISTED: Claude (claude-opus-5-5), Prompt: 'Build the Streamlit trace dashboard as settled in the grilling round (go with recommendations)', Date: 2026-10-07
+# The trace dashboard only; the notebooks do not need it. Install from the repo root:
+#   pip install -r requirements.txt -r task3_agentic/dashboard/requirements.txt
+streamlit>=1.50  # bundles altair, used for the charts

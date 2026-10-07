@@ -148,6 +148,11 @@ of the assessment brief. Every AI-assisted block also carries an inline
 | 2026-10-07 | Claude (claude-opus-5-5) | `task3_agentic/prompts.py` | 'yes fix the hedge (levels from the volatility window closest to the 63-day horizon)' | FINAL_REPORT v2: levels come from the brief and the analyst's answer |
 | 2026-10-07 | Claude (claude-opus-5-5) | `tests/test_task3_agent.py` | 'yes fix the hedge (levels from the volatility window closest to the 63-day horizon)' | Test that 3A prefers the horizon-matched volatility |
 | 2026-10-07 | Claude (claude-opus-5-5) | `tests/test_task3_pipeline.py` | 'yes fix the hedge (levels from the volatility window closest to the 63-day horizon)' | Tests for horizon_volatility and 3B's recomputed levels |
+| 2026-10-07 | Claude (claude-opus-5-5) | `task3_agentic/dashboard/__init__.py` | 'Build the Streamlit trace dashboard as settled in the grilling round (go with recommendations)' | Dashboard package marker |
+| 2026-10-07 | Claude (claude-opus-5-5) | `task3_agentic/dashboard/views.py` | 'Build the Streamlit trace dashboard as settled in the grilling round (go with recommendations)' | Trace tables in pandas: run labels, summary, Gantt rows, steps, per-tool stats |
+| 2026-10-07 | Claude (claude-opus-5-5) | `task3_agentic/dashboard/app.py` | 'Build the Streamlit trace dashboard as settled in the grilling round (go with recommendations)' | Streamlit trace dashboard: run picker, metrics, timeline, steps and tools tabs |
+| 2026-10-07 | Claude (claude-opus-5-5) | `task3_agentic/dashboard/requirements.txt` | 'Build the Streamlit trace dashboard as settled in the grilling round (go with recommendations)' | Dashboard-only dependency (streamlit) |
+| 2026-10-07 | Claude (claude-opus-5-5) | `tests/test_task3_dashboard.py` | 'Build the Streamlit trace dashboard as settled in the grilling round (go with recommendations)' | Offline tests for the views and a headless AppTest of the app |
 
 ## Adapted open-source code
 
